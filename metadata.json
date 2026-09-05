@@ -1,0 +1,6 @@
+{
+  "name": "Mahabodhi Meditation Centre",
+  "description": "A mindful digital sanctuary for 10-day Vipassana meditation courses, Sangha Dana reservations, and monastic teachings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
