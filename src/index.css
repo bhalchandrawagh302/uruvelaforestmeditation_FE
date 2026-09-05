@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #703100;
+  --color-primary-container: #944403;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #ffc8a9;
+  --color-primary-fixed: #ffdbc9;
+  --color-primary-fixed-dim: #ffb68c;
+  --color-on-primary-fixed: #321200;
+
+  --color-secondary: #496455;
+  --color-secondary-container: #cbead7;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #4f6a5b;
+  --color-secondary-fixed: #cbead7;
+  --color-secondary-fixed-dim: #b0cdbb;
+  --color-on-secondary-fixed: #052015;
+
+  --color-tertiary: #004966;
+  --color-tertiary-container: #006287;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-fixed: #c5e7ff;
+  --color-tertiary-fixed-dim: #89cff9;
+
+  --color-background: #fff8f5;
+  --color-surface: #fff8f5;
+  --color-surface-dim: #e8d7ce;
+  --color-surface-bright: #fff8f5;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fff1eb;
+  --color-surface-container: #fceae2;
+  --color-surface-container-high: #f7e5dc;
+  --color-surface-container-highest: #f1dfd7;
+  --color-surface-variant: #f1dfd7;
+
+  --color-on-background: #231a15;
+  --color-on-surface: #231a15;
+  --color-on-surface-variant: #554339;
+
+  --color-outline: #887367;
+  --color-outline-variant: #dbc1b4;
+  --color-surface-tint: #984707;
+
+  --color-saffron-accent: #b35c1e;
+  --color-forest-green: #2d4739;
+  --color-soft-charcoal: #2a2825;
+  --color-warm-canvas: #fdfbf7;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+
+  --font-serif: "Noto Serif", "Noto Serif Devanagari", Georgia, serif;
+  --font-sans: "Open Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-devanagari: "Noto Sans Devanagari", "Noto Serif Devanagari", sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #fff8f5;
+    color: #231a15;
+    font-family: "Open Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Noto Serif", "Noto Serif Devanagari", Georgia, serif;
+  }
+}
+
+.font-display {
+  font-family: "Noto Serif", "Noto Serif Devanagari", Georgia, serif;
+}
+
+.font-body {
+  font-family: "Open Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+}
+
+.font-devanagari {
+  font-family: "Noto Sans Devanagari", "Noto Serif Devanagari", sans-serif;
+}
+
+/* Minimalist Zen Form Inputs */
+.form-input {
+  border: none;
+  border-bottom: 2px solid #dbc1b4;
+  background: transparent;
+  border-radius: 0;
+  padding: 8px 0;
+  transition: border-color 0.3s ease, background-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  box-shadow: none;
+  border-bottom-color: #703100;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f7e5dc;
+}
+::-webkit-scrollbar-thumb {
+  background: #dbc1b4;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #887367;
+}
+
+/* Lattice pattern background */
+.bg-lattice {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23703100' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
