@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Calendar, BookOpen, Heart, Sparkles, Compass, Music, Shield, Info, ArrowRight, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Calendar, BookOpen, Heart, Sparkles, Compass, Music, Shield, Info, ArrowRight, Lock, Share2, Check } from 'lucide-react';
 import { Language, ScreenType } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
 import { MahabodhiLogo } from './MahabodhiLogo';
@@ -22,12 +22,45 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onLanguageChange,
 }) => {
   const t = TRANSLATIONS[language];
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
   const handleLinkClick = (screen: ScreenType) => {
     onNavigate(screen);
     onClose();
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Mahabodhi Meditation Centre | Uruvela Forest Vihara',
+      text: 'Discover peace within at Mahabodhi Meditation Centre (Uruvela Forest Vihara). Silent retreats, Dhamma talks, and Sangha Dana.',
+      url: window.location.origin || window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: clipboard copy or whatsapp
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareData.url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } else {
+        const msg = encodeURIComponent(`${shareData.text}\n${shareData.url}`);
+        window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+      }
+    } catch {
+      const msg = encodeURIComponent(`${shareData.text}\n${shareData.url}`);
+      window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+    }
   };
 
   return (
@@ -175,6 +208,24 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               <div className="text-xs text-[#887367]">Dana & Voluntary Service</div>
             </div>
             {currentScreen === 'support' && <span className="w-1.5 h-1.5 rounded-full bg-[#b35c1e]" />}
+          </button>
+
+          {/* Share Option */}
+          <button
+            id="drawer-share-btn"
+            onClick={handleShare}
+            className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100] cursor-pointer"
+          >
+            <Share2 className="w-5 h-5 text-[#b35c1e]" />
+            <div className="flex-1">
+              <div className="text-sm flex items-center gap-2">
+                <span>{copied ? t.linkCopied : t.navShare}</span>
+                {copied && <Check className="w-4 h-4 text-emerald-600" />}
+              </div>
+              <div className="text-xs text-[#887367]">
+                {copied ? 'Link copied to clipboard' : t.shareSubtitle}
+              </div>
+            </div>
           </button>
 
           {/* <div className="pt-2 border-t border-[#dbc1b4]/30 my-1">
