@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, BookOpen, Heart, Sparkles, Compass, Music, Shield, Info, ArrowRight, Lock, Share2, Check } from 'lucide-react';
+import { X, BookOpen, Heart, Sparkles, Compass, Music, Shield, Info, ArrowRight, Lock, Share2, Check } from 'lucide-react';
 import { Language, ScreenType } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
 import { MahabodhiLogo } from './MahabodhiLogo';
@@ -131,19 +131,19 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
 
           <button
-            onClick={() => handleLinkClick('courses')}
+            onClick={() => handleLinkClick('visit')}
             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'courses'
+              currentScreen === 'visit'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
             }`}
           >
-            <Calendar className="w-5 h-5 text-[#b35c1e]" />
+            <Compass className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
-              <div className="text-sm">{t.navRetreats} (10-Day Courses)</div>
-              <div className="text-xs text-[#887367]">Schedule & Availability</div>
+              <div className="text-sm">Visit Us</div>
+              <div className="text-xs text-[#887367]">Location & How to Reach</div>
             </div>
-            {currentScreen === 'courses' && <span className="w-1.5 h-1.5 rounded-full bg-[#b35c1e]" />}
+            {currentScreen === 'visit' && <span className="w-1.5 h-1.5 rounded-full bg-[#b35c1e]" />}
           </button>
 
           <button
@@ -277,7 +277,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           </div>
 
           <button
-            onClick={() => handleLinkClick('register')}
+            onClick={() => handleLinkClick('courses')}
             className="w-full py-3 bg-[#b35c1e] text-white rounded-full text-xs font-semibold uppercase tracking-wider hover:bg-[#944403] flex items-center justify-center gap-2 shadow-xs transition-colors"
           >
             <span>{t.btnRegister}</span>

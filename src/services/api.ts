@@ -4,7 +4,69 @@ export const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'https://uruvelaforestmeditation-be.onrender.com'
 ).replace(/\/+$/, '');
 
+export const API_URL = `${API_BASE_URL}/api`;
 export const API_V1_URL = `${API_BASE_URL}/api/v1`;
+
+// ── Backend response shape (snake_case) ──────────────────────────────────────
+
+export interface ApiCourse {
+  _id: string;
+  year: number;
+  from_date_str: string;
+  to_date_str: string;
+  raw_start_date: string;  // "YYYY-MM-DD"
+  raw_end_date: string;    // "YYYY-MM-DD"
+  status: 'open' | 'upcoming' | 'cancelled' | 'completed';
+  teacher: string;
+  language: string;
+  available_seats: number;
+  total_seats: number;
+  location?: string;
+  description?: string;
+}
+
+/** Maps a raw backend course record to the frontend Course type. */
+export function mapApiCourseToCourse(raw: ApiCourse): Course {
+  return {
+    id: raw._id,
+    year: String(raw.year),
+    fromDate: raw.from_date_str,
+    toDate: raw.to_date_str,
+    rawStartDate: raw.raw_start_date,
+    rawEndDate: raw.raw_end_date,
+    status: raw.status,
+    teacher: raw.teacher,
+    language: raw.language,
+    availableSeats: raw.available_seats,
+    totalSeats: raw.total_seats,
+    location: raw.location,
+    description: raw.description,
+  };
+}
+
+/**
+ * Fetch all published retreat courses from the backend, sorted by start date.
+ * Optionally filter by year.
+ */
+export async function fetchCourses(year?: number): Promise<Course[]> {
+  const params = year ? `?year=${year}` : '';
+  const response = await fetch(`${API_URL}/courses${params}`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    let detail = 'Failed to fetch courses. Please try again.';
+    try {
+      const err = await response.json();
+      if (err.detail) detail = typeof err.detail === 'string' ? err.detail : detail;
+    } catch { /* fallback */ }
+    throw new Error(detail);
+  }
+
+  const data: ApiCourse[] = await response.json();
+  return data.map(mapApiCourseToCourse);
+}
 
 export interface ImageUploadResponse {
   key: string;
@@ -120,7 +182,7 @@ export async function submitCourseRegistration(
   }
 
   const payload = {
-    course_id: formData.courseId || 'default-course-id',
+    course_id: formData.courseId || '',
     full_name: formData.fullName.trim(),
     father_name: formData.fatherName.trim(),
     dob: formData.dob,
@@ -132,15 +194,16 @@ export async function submitCourseRegistration(
     previous_courses: parseInt(formData.previousCourses, 10) || 0,
     candidate_photo_url: formData.photoUrl,
     aadhar_document_url: formData.aadharPhotoUrl,
-    candidate_photo_key: (formData as any).photoKey || null,
-    aadhar_document_key: (formData as any).aadharPhotoKey || null,
-    email: formData.email.trim() ? formData.email.trim() : null,
-    street_address: formData.streetAddress.trim() ? formData.streetAddress.trim() : null,
-    city: formData.city.trim() ? formData.city.trim() : null,
-    state: formData.state.trim() ? formData.state.trim() : null,
-    zip_code: formData.zipCode.trim() ? formData.zipCode.trim() : null,
+    candidate_photo_key: formData.photoKey || null,
+    aadhar_document_key: formData.aadharPhotoKey || null,
+    email: formData.email.trim() || null,
+    // Address fields are required (validated in frontend before submission)
+    street_address: formData.streetAddress.trim(),
+    city: formData.city.trim(),
+    state: formData.state.trim(),
+    zip_code: formData.zipCode.trim(),
     country: formData.country || 'India',
-    illness_history: formData.illness.trim() ? formData.illness.trim() : null,
+    illness_history: formData.illness.trim() || null,
   };
 
   const response = await fetch(`${API_V1_URL}/registrations`, {

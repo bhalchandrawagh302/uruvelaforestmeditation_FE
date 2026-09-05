@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, Leaf, Calendar, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Share2, Leaf, Calendar, CheckCircle2, AlertCircle, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import { Course, Language, ScreenType } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
 import { getCourseRegistrationStatus } from '../utils/courseSchedule';
@@ -9,6 +9,9 @@ interface CoursesViewProps {
   language: Language;
   onNavigate: (screen: ScreenType) => void;
   onSelectCourseForRegistration: (course: Course) => void;
+  isLoading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export const CoursesView: React.FC<CoursesViewProps> = ({
@@ -16,6 +19,9 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
   language,
   onNavigate,
   onSelectCourseForRegistration,
+  isLoading = false,
+  error = null,
+  onRetry,
 }) => {
   const t = TRANSLATIONS[language];
   const [copiedToast, setCopiedToast] = useState(false);
@@ -32,6 +38,30 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
     setCopiedToast(true);
     setTimeout(() => setCopiedToast(false), 2500);
   };
+
+  // ── Skeleton row for loading state ─────────────────────────────────────
+  const SkeletonRow = () => (
+    <tr className="border-b border-[#dbc1b4]/40 animate-pulse">
+      {[1, 2, 3, 4].map((i) => (
+        <td key={i} className="py-6 px-6">
+          <div className="h-4 bg-[#dbc1b4]/40 rounded-full w-3/4" />
+        </td>
+      ))}
+    </tr>
+  );
+
+  const SkeletonCard = () => (
+    <div className="bg-white p-5 sm:p-6 rounded-xl border border-[#dbc1b4]/60 shadow-xs animate-pulse">
+      <div className="flex justify-between items-start mb-3">
+        <div className="space-y-2">
+          <div className="h-3 bg-[#dbc1b4]/40 rounded-full w-12" />
+          <div className="h-5 bg-[#dbc1b4]/40 rounded-full w-40" />
+        </div>
+        <div className="h-6 bg-[#dbc1b4]/30 rounded-full w-16" />
+      </div>
+      <div className="h-10 bg-[#dbc1b4]/30 rounded-lg mt-3 w-full" />
+    </div>
+  );
 
   return (
     <div className="pt-36 sm:pt-40 pb-20 px-4 md:px-6 min-h-screen">
@@ -82,7 +112,41 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {courses.map((course) => {
+                {/* Loading skeleton rows */}
+                {isLoading && [1, 2, 3].map((i) => <SkeletonRow key={i} />)}
+
+                {/* Error state */}
+                {!isLoading && error && (
+                  <tr>
+                    <td colSpan={4} className="py-10 px-6 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <AlertCircle className="w-6 h-6 text-[#ba1a1a]" />
+                        <p className="text-sm text-[#554339]">{error}</p>
+                        {onRetry && (
+                          <button
+                            onClick={onRetry}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#b35c1e] border border-[#b35c1e]/40 rounded-full hover:bg-[#fceae2] transition-colors cursor-pointer"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Try Again
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {/* Empty state */}
+                {!isLoading && !error && courses.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-10 px-6 text-center">
+                      <p className="text-sm text-[#705d53]">No courses scheduled at this time. Please check back soon.</p>
+                    </td>
+                  </tr>
+                )}
+
+                {/* Course rows */}
+                {!isLoading && !error && courses.map((course) => {
                   const regStatus = getCourseRegistrationStatus(course);
 
                   if (regStatus.state === 'cancelled') {
@@ -144,7 +208,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                     );
                   }
 
-                  // Not open for registration (upcoming before 1 month, or closed after day 7)
+                  // Not open for registration
                   return (
                     <tr
                       key={course.id}
@@ -197,7 +261,35 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
 
           {/* Mobile Card View (Shown only on small screens) */}
           <div className="md:hidden space-y-4">
-            {courses.map((course) => {
+            {/* Loading skeleton cards */}
+            {isLoading && [1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+
+            {/* Error state */}
+            {!isLoading && error && (
+              <div className="bg-white p-6 rounded-xl border border-[#dbc1b4]/60 shadow-xs text-center">
+                <AlertCircle className="w-6 h-6 text-[#ba1a1a] mx-auto mb-2" />
+                <p className="text-sm text-[#554339] mb-3">{error}</p>
+                {onRetry && (
+                  <button
+                    onClick={onRetry}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#b35c1e] border border-[#b35c1e]/40 rounded-full hover:bg-[#fceae2] transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Try Again
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !error && courses.length === 0 && (
+              <div className="bg-white p-6 rounded-xl border border-[#dbc1b4]/60 shadow-xs text-center">
+                <p className="text-sm text-[#705d53]">No courses scheduled at this time. Please check back soon.</p>
+              </div>
+            )}
+
+            {/* Course cards */}
+            {!isLoading && !error && courses.map((course) => {
               const regStatus = getCourseRegistrationStatus(course);
 
               if (regStatus.state === 'cancelled') {
@@ -294,6 +386,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                 </div>
               );
             })}
+
           </div>
         </div>
 

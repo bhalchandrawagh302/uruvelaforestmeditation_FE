@@ -9,10 +9,13 @@ export interface Course {
   toDate: string;
   rawStartDate: string;
   rawEndDate: string;
-  status: 'open' | 'upcoming' | 'cancelled';
+  status: 'open' | 'upcoming' | 'cancelled' | 'completed';
   teacher: string;
   language: string;
   availableSeats: number;
+  totalSeats?: number;
+  location?: string;
+  description?: string;
 }
 
 export interface RegistrationFormData {

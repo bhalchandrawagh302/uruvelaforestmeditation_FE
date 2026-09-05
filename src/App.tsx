@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Language, ScreenType, Course, RegistrationFormData, DhammaTalk } from './types';
-import { INITIAL_COURSES, DHAMMA_TALKS_LIST } from './data/monasteryData';
+import { DHAMMA_TALKS_LIST } from './data/monasteryData';
+import { fetchCourses } from './services/api';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { NavigationDrawer } from './components/NavigationDrawer';
@@ -49,16 +50,36 @@ export function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
   const [language, setLanguage] = useState<Language>('en');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [courses, setCourses] = useState<Course[]>(INITIAL_COURSES);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [activeTalk, setActiveTalk] = useState<DhammaTalk | null>(null);
+
+  // ── API: Load courses ────────────────────────────────────────────────────
+  const loadCourses = useCallback(async () => {
+    setCoursesLoading(true);
+    setCoursesError(null);
+    try {
+      const data = await fetchCourses();
+      setCourses(data);
+    } catch (err) {
+      setCoursesError(err instanceof Error ? err.message : 'Failed to load courses.');
+    } finally {
+      setCoursesLoading(false);
+    }
+  }, []);
+
+  // Load courses on mount
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
   // ── Sync state → URL whenever currentScreen changes ─────────────────────
   useEffect(() => {
     const hash = SCREEN_TO_HASH[currentScreen];
     try {
       if (currentScreen === 'dashboard' || currentScreen === 'admin-login') {
-        // keep the legacy pathname behaviour for admin
         window.history.pushState(null, '', `/${currentScreen === 'dashboard' ? 'dashboard' : '#admin-login'}`);
       } else {
         window.history.pushState(null, '', hash ? `#${hash}` : '/');
@@ -70,7 +91,6 @@ export function App() {
   useEffect(() => {
     const onPop = () => {
       const screen = getScreenFromLocation();
-      // Guard admin-only screens
       if (screen === 'dashboard' && !isAdminLoggedIn) {
         setCurrentScreen('admin-login');
       } else {
@@ -111,17 +131,9 @@ export function App() {
     setCurrentScreen('register');
   };
 
-  const handleRegistrationSuccess = (data: RegistrationFormData) => {
-    // Optionally update course available seats
-    if (data.courseId) {
-      setCourses((prev) =>
-        prev.map((c) =>
-          c.id === data.courseId
-            ? { ...c, availableSeats: Math.max(0, c.availableSeats - 1) }
-            : c
-        )
-      );
-    }
+  // Re-fetch from backend so seat counts are always real after a registration
+  const handleRegistrationSuccess = (_data: RegistrationFormData) => {
+    loadCourses();
   };
 
   const handlePlayTalk = (talk: DhammaTalk) => {
@@ -183,6 +195,9 @@ export function App() {
             language={language}
             onNavigate={handleNavigate}
             onSelectCourseForRegistration={handleSelectCourseForRegistration}
+            isLoading={coursesLoading}
+            error={coursesError}
+            onRetry={loadCourses}
           />
         )}
 

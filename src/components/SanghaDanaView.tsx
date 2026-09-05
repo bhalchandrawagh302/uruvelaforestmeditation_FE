@@ -74,7 +74,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
   const MONTH_LIST = useMemo(() => buildMonthList(), []);
 
   const [allocatedList, setAllocatedList] = useState<AllocatedDanaItem[]>(INITIAL_ALLOCATED_LIST);
-  const [isListExpanded, setIsListExpanded] = useState<boolean>(true);
+  const [isListExpanded, setIsListExpanded] = useState<boolean>(false);
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0); // 0 = current real month
 
   // Per-month booking overrides (user bookings applied on top of seed data)
@@ -95,6 +95,110 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     [currentMonth, bookingOverrides]
   );
 
+  // Occasion lookup for initial/seeded allocated dates
+  const SEED_OCCASION_MAP = useMemo(() => {
+    const map: Record<string, string> = {
+      '2026-10-01': 'Ancestral blessings and peace',
+      '2026-10-02': 'Gratitude for the Dhamma',
+      '2026-10-04': 'In memory of loved ones',
+      '2026-10-05': 'Family health and merit generation',
+      '2026-10-07': 'Birthday Dana',
+      '2026-10-08': 'Vassa Offering',
+    };
+    return map;
+  }, []);
+
+  // Compute complete month's allocated dana list for the selected calendar month
+  const monthAllocatedItems = useMemo(() => {
+    // Only real calendar day slots (excluding empty leading cells)
+    const daySlots = danaSlots.filter((s) => !s.isEmpty && s.dateStr);
+
+    interface MonthAllocatedRow {
+      id: string;
+      dateDisplay: string;
+      meal: string;
+      donor: string;
+      occasion: string;
+      status: 'pending' | 'confirmed' | 'unallocated';
+    }
+
+    const rows: MonthAllocatedRow[] = [];
+
+    daySlots.forEach((slot) => {
+      const [y, m, d] = slot.dateStr.split('-').map(Number);
+      const dateDisplay = new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
+      const bfAllocated = slot.breakfastBooked || slot.breakfastPending;
+      const luAllocated = slot.lunchBooked || slot.lunchPending;
+
+      // Find user dedication note if created in this session
+      const userItem = allocatedList.find((item) => item.id.includes(slot.dateStr));
+      const seedOccasion = SEED_OCCASION_MAP[slot.dateStr] || userItem?.occasion || 'Blessings for all beings';
+
+      // Case 1: Neither is allocated -> Show a single row with "- -"
+      if (!bfAllocated && !luAllocated) {
+        rows.push({
+          id: `${slot.dateStr}-none`,
+          dateDisplay,
+          meal: '- -',
+          donor: '- -',
+          occasion: '- -',
+          status: 'unallocated',
+        });
+        return;
+      }
+
+      // Case 2: Both allocated to the SAME donor
+      if (
+        bfAllocated &&
+        luAllocated &&
+        slot.breakfastDonor &&
+        slot.lunchDonor &&
+        slot.breakfastDonor.trim().toLowerCase() === slot.lunchDonor.trim().toLowerCase() &&
+        slot.breakfastPending === slot.lunchPending
+      ) {
+        rows.push({
+          id: `${slot.dateStr}-both`,
+          dateDisplay,
+          meal: 'Breakfast & Lunch',
+          donor: slot.breakfastDonor,
+          occasion: seedOccasion,
+          status: slot.breakfastPending ? 'pending' : 'confirmed',
+        });
+        return;
+      }
+
+      // Case 3: Distinct donors or distinct meal bookings -> individual rows per meal
+      if (bfAllocated) {
+        rows.push({
+          id: `${slot.dateStr}-breakfast`,
+          dateDisplay,
+          meal: 'Breakfast',
+          donor: slot.breakfastDonor || 'Devotee',
+          occasion: seedOccasion,
+          status: slot.breakfastPending ? 'pending' : 'confirmed',
+        });
+      }
+
+      if (luAllocated) {
+        rows.push({
+          id: `${slot.dateStr}-lunch`,
+          dateDisplay,
+          meal: 'Lunch',
+          donor: slot.lunchDonor || 'Devotee',
+          occasion: seedOccasion,
+          status: slot.lunchPending ? 'pending' : 'confirmed',
+        });
+      }
+    });
+
+    return rows;
+  }, [danaSlots, allocatedList, SEED_OCCASION_MAP]);
+
   const months = MONTH_LIST; // alias for JSX use
 
   const handlePrevMonth = () => {
@@ -106,7 +210,18 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
   };
 
   const handleSlotClick = (slot: DanaMealSlot, meal?: 'breakfast' | 'lunch') => {
-    if (slot.isEmpty) return;
+    if (slot.isEmpty || !slot.dateStr) return;
+
+    // Disallow booking past dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const [y, m, d] = slot.dateStr.split('-').map(Number);
+    const slotDate = new Date(y, m - 1, d);
+    slotDate.setHours(0, 0, 0, 0);
+
+    if (slotDate < today) {
+      return;
+    }
     
     // Check if slot has available options (booked OR pending blocks the slot)
     const bfUnavailable = slot.breakfastBooked || slot.breakfastPending;
@@ -159,10 +274,19 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
         ? 'Breakfast'
         : 'Lunch';
 
-    const [monthName, yearStr] = currentMonth.name.split(' ');
+    let dateDisplay = `Day ${bookingModalSlot.day}`;
+    if (bookingModalSlot.dateStr) {
+      const [y, m, d] = bookingModalSlot.dateStr.split('-').map(Number);
+      dateDisplay = new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
     const newItem: AllocatedDanaItem = {
-      id: `dana-${Date.now()}`,
-      dateDisplay: `${monthName} ${bookingModalSlot.day}, ${yearStr}`,
+      id: `dana-${targetDateStr}-${Date.now()}`,
+      dateDisplay,
       meal: mealLabel,
       donor: donorName,
       occasion: dedicationNote.trim() || 'Merit offering for Sangha',
@@ -172,7 +296,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     setAllocatedList((prev) => [newItem, ...prev]);
 
     setBookingSuccessToast(
-      `Your Sangha Dana request for ${monthName} ${bookingModalSlot.day} is pending confirmation. Sādhu! 🙏`
+      `Your Sangha Dana request for ${dateDisplay} is pending confirmation. Sādhu! 🙏`
     );
     setTimeout(() => setBookingSuccessToast(null), 5000);
 
@@ -203,10 +327,25 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           <button
             id="book-a-date-hero-btn"
             onClick={() => {
-              const firstAvailable = danaSlots.find(
-                (s) => !s.isEmpty && (!s.breakfastBooked || !s.lunchBooked)
-              );
-              if (firstAvailable) setBookingModalSlot(firstAvailable);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              // Find first available slot on or after today
+              const firstAvailable = danaSlots.find((s) => {
+                if (s.isEmpty || !s.dateStr) return false;
+                const [y, m, d] = s.dateStr.split('-').map(Number);
+                const slotDate = new Date(y, m - 1, d);
+                slotDate.setHours(0, 0, 0, 0);
+                if (slotDate < today) return false;
+                return !s.breakfastBooked || !s.lunchBooked;
+              });
+
+              if (firstAvailable) {
+                handleSlotClick(firstAvailable);
+              } else {
+                // If no slot available in current month, scroll down to calendar
+                document.getElementById('reservation-calendar')?.scrollIntoView({ behavior: 'smooth' });
+              }
             }}
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#b35c1e] text-white rounded-full text-xs font-semibold uppercase tracking-wider hover:bg-[#944403] active:scale-95 transition-all duration-300 shadow-md cursor-pointer"
           >
@@ -217,7 +356,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       </section>
 
       {/* Main Reservation Calendar Section */}
-      <main className="max-w-[1120px] mx-auto px-4 md:px-6 pt-16">
+      <main id="reservation-calendar" className="max-w-[1120px] mx-auto px-4 md:px-6 pt-16">
         <div className="mb-8">
           <h2 className="font-serif text-2xl sm:text-3xl text-[#703100] font-normal tracking-tight mb-6">
             {t.danaReservationTitle}
@@ -273,28 +412,48 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                   );
                 }
 
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let isPast = false;
+                if (slot.dateStr) {
+                  const [y, m, d] = slot.dateStr.split('-').map(Number);
+                  const slotDate = new Date(y, m - 1, d);
+                  slotDate.setHours(0, 0, 0, 0);
+                  isPast = slotDate < today;
+                }
+
                 return (
                   <div
                     key={slot.day}
-                    className="min-h-[80px] sm:min-h-[105px] flex flex-col relative group select-none transition-all"
+                    className={`min-h-[80px] sm:min-h-[105px] flex flex-col relative group select-none transition-all ${
+                      isPast ? 'opacity-40 grayscale-[50%] cursor-not-allowed bg-gray-50/70' : ''
+                    }`}
                   >
                     {/* Day Number */}
-                    <span className="absolute top-1.5 left-2 text-xs font-semibold text-[#231a15] z-20 pointer-events-none drop-shadow-xs">
+                    <span className={`absolute top-1.5 left-2 text-xs font-semibold z-20 pointer-events-none drop-shadow-xs ${
+                      isPast ? 'text-gray-400' : 'text-[#231a15]'
+                    }`}>
                       {slot.day}
                     </span>
 
                     {/* Top Half: Breakfast */}
                     <div
-                      onClick={() => handleSlotClick(slot, 'breakfast')}
-                      title={`Day ${slot.day} Breakfast: ${
-                        slot.breakfastBooked
-                          ? `Booked (${slot.breakfastDonor || 'Devotee'})`
-                          : slot.breakfastPending
-                          ? `Pending (${slot.breakfastDonor || 'Devotee'})`
-                          : 'Available to Offer'
-                      }`}
+                      onClick={() => !isPast && handleSlotClick(slot, 'breakfast')}
+                      title={
+                        isPast
+                          ? `Day ${slot.day}: Past date`
+                          : `Day ${slot.day} Breakfast: ${
+                              slot.breakfastBooked
+                                ? `Booked (${slot.breakfastDonor || 'Devotee'})`
+                                : slot.breakfastPending
+                                ? `Pending (${slot.breakfastDonor || 'Devotee'})`
+                                : 'Available to Offer'
+                            }`
+                      }
                       className={`flex-1 flex items-center justify-center text-[10px] sm:text-xs font-medium transition-all duration-200 border-b border-white/20 ${
-                        slot.breakfastBooked
+                        isPast
+                          ? 'bg-[#a3948b] text-white/80 cursor-not-allowed'
+                          : slot.breakfastBooked
                           ? 'bg-[#2d4739] text-white hover:brightness-110 cursor-default'
                           : slot.breakfastPending
                           ? 'bg-[#b91c1c] text-white cursor-default'
@@ -302,22 +461,28 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                       }`}
                     >
                       <span className="hidden sm:inline pl-3">
-                        {slot.breakfastBooked ? 'Booked' : slot.breakfastPending ? 'Pending' : 'Open'}
+                        {isPast ? 'Past' : slot.breakfastBooked ? 'Booked' : slot.breakfastPending ? 'Pending' : 'Open'}
                       </span>
                     </div>
 
                     {/* Bottom Half: Lunch */}
                     <div
-                      onClick={() => handleSlotClick(slot, 'lunch')}
-                      title={`Day ${slot.day} Lunch: ${
-                        slot.lunchBooked
-                          ? `Booked (${slot.lunchDonor || 'Devotee'})`
-                          : slot.lunchPending
-                          ? `Pending (${slot.lunchDonor || 'Devotee'})`
-                          : 'Available to Offer'
-                      }`}
+                      onClick={() => !isPast && handleSlotClick(slot, 'lunch')}
+                      title={
+                        isPast
+                          ? `Day ${slot.day}: Past date`
+                          : `Day ${slot.day} Lunch: ${
+                              slot.lunchBooked
+                                ? `Booked (${slot.lunchDonor || 'Devotee'})`
+                                : slot.lunchPending
+                                ? `Pending (${slot.lunchDonor || 'Devotee'})`
+                                : 'Available to Offer'
+                            }`
+                      }
                       className={`flex-1 flex items-center justify-center text-[10px] sm:text-xs font-medium transition-all duration-200 ${
-                        slot.lunchBooked
+                        isPast
+                          ? 'bg-[#a3948b] text-white/80 cursor-not-allowed'
+                          : slot.lunchBooked
                           ? 'bg-[#2d4739] text-white hover:brightness-110 cursor-default'
                           : slot.lunchPending
                           ? 'bg-[#b91c1c] text-white cursor-default'
@@ -325,7 +490,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                       }`}
                     >
                       <span className="hidden sm:inline pl-3">
-                        {slot.lunchBooked ? 'Booked' : slot.lunchPending ? 'Pending' : 'Open'}
+                        {isPast ? 'Past' : slot.lunchBooked ? 'Booked' : slot.lunchPending ? 'Pending' : 'Open'}
                       </span>
                     </div>
                   </div>
@@ -359,7 +524,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
             className="w-full flex items-center justify-between p-5 text-left bg-[#fff1eb]/60 hover:bg-[#fff1eb] transition-colors cursor-pointer border-b border-[#dbc1b4]/40"
           >
             <span className="font-serif text-lg text-[#703100] font-medium">
-              {t.allocatedDanaList} ({allocatedList.length})
+              {t.allocatedDanaList} ({currentMonth.name}) — {monthAllocatedItems.filter(i => i.status !== 'unallocated').length} Booked
             </span>
             {isListExpanded ? (
               <ChevronUp className="w-5 h-5 text-[#703100]" />
@@ -381,19 +546,44 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#dbc1b4]/30 text-[#231a15]">
-                  {allocatedList.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#fff1eb]/40 transition-colors">
+                  {monthAllocatedItems.map((item) => (
+                    <tr
+                      key={item.id}
+                      className={`transition-colors ${
+                        item.status === 'unallocated'
+                          ? 'hover:bg-[#fdfbf7]/60 opacity-60'
+                          : 'hover:bg-[#fff1eb]/40'
+                      }`}
+                    >
                       <td className="py-4 px-6 font-medium text-[#703100]">
                         {item.dateDisplay}
                       </td>
-                      <td className="py-4 px-6 font-semibold text-[#2d4739]">
+                      <td
+                        className={`py-4 px-6 font-semibold ${
+                          item.status === 'unallocated'
+                            ? 'text-gray-400 font-normal tracking-wider'
+                            : 'text-[#2d4739]'
+                        }`}
+                      >
                         {item.meal}
                       </td>
-                      <td className="py-4 px-6 text-[#231a15]">
+                      <td
+                        className={`py-4 px-6 ${
+                          item.status === 'unallocated'
+                            ? 'text-gray-400 font-normal tracking-wider'
+                            : 'text-[#231a15]'
+                        }`}
+                      >
                         {item.donor}
                       </td>
-                      <td className="py-4 px-6 text-xs text-[#554339] italic">
-                        {item.occasion || 'Blessings for all beings'}
+                      <td
+                        className={`py-4 px-6 text-xs italic ${
+                          item.status === 'unallocated'
+                            ? 'text-gray-400 not-italic tracking-wider'
+                            : 'text-[#554339]'
+                        }`}
+                      >
+                        {item.occasion}
                       </td>
                       <td className="py-4 px-6">
                         {item.status === 'pending' ? (
@@ -401,10 +591,14 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse" />
                             Pending
                           </span>
-                        ) : (
+                        ) : item.status === 'confirmed' ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[#e8f5ee] text-[#2d4739] border border-[#2d4739]/20">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#2d4739] inline-block" />
                             Confirmed
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs font-normal tracking-wider">
+                            - -
                           </span>
                         )}
                       </td>
@@ -443,20 +637,37 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
               Offer Sangha Dana
             </h3>
             <p className="text-xs text-[#554339] mb-6 font-medium">
-              Selected Date: {months[currentMonthIndex].name.split(' ')[0]} {bookingModalSlot.day}, {months[currentMonthIndex].name.split(' ')[1]}
+              Selected Date:{' '}
+              {(() => {
+                if (bookingModalSlot.dateStr) {
+                  const [y, m, d] = bookingModalSlot.dateStr.split('-').map(Number);
+                  const dateObj = new Date(y, m - 1, d);
+                  return dateObj.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  });
+                }
+                return `Day ${bookingModalSlot.day}`;
+              })()}
             </p>
 
             <form onSubmit={handleConfirmBooking} className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-2">
-                  Select Meal Offering
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339]">
+                    Select Meal Offering
+                  </label>
+                  <span className="text-xs font-medium text-[#703100]">
+                    Suggested Dana
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     disabled={bookingModalSlot.breakfastBooked || bookingModalSlot.breakfastPending}
                     onClick={() => setBookingMealType('breakfast')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border text-center transition-all ${
+                    className={`py-2.5 px-2 rounded-lg text-xs font-medium border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
                       bookingMealType === 'breakfast'
                         ? 'bg-[#703100] text-white border-[#703100]'
                         : bookingModalSlot.breakfastBooked || bookingModalSlot.breakfastPending
@@ -464,14 +675,17 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                         : 'bg-white text-[#231a15] border-[#dbc1b4] hover:bg-[#fceae2]'
                     }`}
                   >
-                    Breakfast
+                    <span className="font-semibold">Breakfast</span>
+                    <span className={`text-[11px] ${bookingMealType === 'breakfast' ? 'text-amber-200' : 'text-[#703100]'}`}>
+                      ₹2,500
+                    </span>
                   </button>
 
                   <button
                     type="button"
                     disabled={bookingModalSlot.lunchBooked || bookingModalSlot.lunchPending}
                     onClick={() => setBookingMealType('lunch')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border text-center transition-all ${
+                    className={`py-2.5 px-2 rounded-lg text-xs font-medium border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
                       bookingMealType === 'lunch'
                         ? 'bg-[#703100] text-white border-[#703100]'
                         : bookingModalSlot.lunchBooked || bookingModalSlot.lunchPending
@@ -479,14 +693,17 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                         : 'bg-white text-[#231a15] border-[#dbc1b4] hover:bg-[#fceae2]'
                     }`}
                   >
-                    Lunch
+                    <span className="font-semibold">Lunch</span>
+                    <span className={`text-[11px] ${bookingMealType === 'lunch' ? 'text-amber-200' : 'text-[#703100]'}`}>
+                      ₹5,000
+                    </span>
                   </button>
 
                   <button
                     type="button"
                     disabled={bookingModalSlot.breakfastBooked || bookingModalSlot.lunchBooked || bookingModalSlot.breakfastPending || bookingModalSlot.lunchPending}
                     onClick={() => setBookingMealType('both')}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border text-center transition-all ${
+                    className={`py-2.5 px-2 rounded-lg text-xs font-medium border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
                       bookingMealType === 'both'
                         ? 'bg-[#703100] text-white border-[#703100]'
                         : bookingModalSlot.breakfastBooked || bookingModalSlot.lunchBooked || bookingModalSlot.breakfastPending || bookingModalSlot.lunchPending
@@ -494,8 +711,32 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                         : 'bg-white text-[#231a15] border-[#dbc1b4] hover:bg-[#fceae2]'
                     }`}
                   >
-                    Full Day (Both)
+                    <span className="font-semibold">Full Day</span>
+                    <span className={`text-[11px] ${bookingMealType === 'both' ? 'text-amber-200' : 'text-[#703100]'}`}>
+                      ₹7,500
+                    </span>
                   </button>
+                </div>
+              </div>
+
+              {/* Amount to Pay Highlight Box */}
+              <div className="bg-[#fff1eb] border border-[#dbc1b4]/70 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-[#554339] font-medium block">
+                    Dana Offering Amount
+                  </span>
+                  <span className="text-[11px] text-[#887367]">
+                    {bookingMealType === 'both'
+                      ? 'Breakfast & Lunch for Monastic Sangha'
+                      : bookingMealType === 'breakfast'
+                      ? 'Morning Breakfast for Monastic Sangha'
+                      : 'Afternoon Main Lunch for Monastic Sangha'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-base font-bold text-[#703100]">
+                    {bookingMealType === 'both' ? '₹7,500' : bookingMealType === 'breakfast' ? '₹2,500' : '₹5,000'}
+                  </span>
                 </div>
               </div>
 
@@ -536,9 +777,9 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-[#b35c1e] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#944403] shadow-xs"
+                  className="flex-1 py-2.5 rounded-full bg-[#b35c1e] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#944403] shadow-xs cursor-pointer active:scale-98"
                 >
-                  Confirm Dana
+                  Submit
                 </button>
               </div>
             </form>
