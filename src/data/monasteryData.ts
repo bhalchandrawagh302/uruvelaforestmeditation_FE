@@ -327,7 +327,7 @@ export const TRANSLATIONS = {
     // Sangha Dana screen
     danaHeroTitle: 'SANGHA DANA',
     danaHeroSubtitle: 'You and your family can offer a meal dana.',
-    btnBookDate: 'BOOK A DATE',
+    btnBookDate: 'OFFER TO SANGHA',
     danaReservationTitle: 'SANGHA DANA RESERVATION',
     legendAllocated: 'Allocated / Booked',
     legendAvailable: 'Open / Available',
