@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Share2, Leaf, Calendar, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { Course, Language, ScreenType } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
+import { getCourseRegistrationStatus } from '../utils/courseSchedule';
 
 interface CoursesViewProps {
   courses: Course[];
@@ -82,7 +83,33 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
               </thead>
               <tbody className="text-sm">
                 {courses.map((course) => {
-                  if (course.status === 'open') {
+                  const regStatus = getCourseRegistrationStatus(course);
+
+                  if (regStatus.state === 'cancelled') {
+                    return (
+                      <tr
+                        key={course.id}
+                        className="bg-[#fff8f5]/40 opacity-60 border-b border-[#dbc1b4]/20"
+                      >
+                        <td className="py-6 px-6 font-medium text-[#554339] line-through">
+                          {course.year}
+                        </td>
+                        <td className="py-6 px-6 text-[#554339] line-through">
+                          {course.fromDate}
+                        </td>
+                        <td className="py-6 px-6 text-[#554339] line-through">
+                          {course.toDate}
+                        </td>
+                        <td className="py-6 px-6 text-right">
+                          <span className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider">
+                            {t.statusCancelled}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  if (regStatus.canRegister) {
                     return (
                       <tr
                         key={course.id}
@@ -92,7 +119,14 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                           {course.year}
                         </td>
                         <td className="py-6 px-6 text-[#231a15] font-medium">
-                          {course.fromDate}
+                          <div className="flex items-center gap-2">
+                            <span>{course.fromDate}</span>
+                            {regStatus.state === 'ongoing' && (
+                              <span className="bg-[#2d4739]/10 text-[#2d4739] text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                                {regStatus.badgeLabel}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-6 px-6 text-[#231a15] font-medium">
                           {course.toDate}
@@ -110,52 +144,49 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                     );
                   }
 
-                  if (course.status === 'upcoming') {
-                    return (
-                      <tr
-                        key={course.id}
-                        className="border-b border-[#dbc1b4]/40 bg-[#fff8f5]/80 hover:bg-[#fff8f5] transition-colors duration-200"
-                      >
-                        <td className="py-6 px-6 font-medium text-[#2a2825]">
-                          {course.year}
-                        </td>
-                        <td className="py-6 px-6 text-[#231a15]">
-                          {course.fromDate}
-                        </td>
-                        <td className="py-6 px-6 text-[#231a15]">
-                          {course.toDate}
-                        </td>
-                        <td className="py-6 px-6 text-right">
-                          <button
-                            disabled
-                            className="inline-flex justify-center items-center px-6 py-2.5 bg-[#2d4739]/20 text-[#554339] rounded-md cursor-not-allowed text-xs font-semibold tracking-wider opacity-80"
-                          >
-                            {t.btnUpcoming}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  // Cancelled
+                  // Not open for registration (upcoming before 1 month, or closed after day 7)
                   return (
                     <tr
                       key={course.id}
-                      className="bg-[#fff8f5]/40 opacity-60 border-b border-[#dbc1b4]/20"
+                      className="border-b border-[#dbc1b4]/40 bg-[#fff8f5]/80 hover:bg-[#fff8f5] transition-colors duration-200"
                     >
-                      <td className="py-6 px-6 font-medium text-[#554339] line-through">
+                      <td className="py-6 px-6 font-medium text-[#2a2825]">
                         {course.year}
                       </td>
-                      <td className="py-6 px-6 text-[#554339] line-through">
-                        {course.fromDate}
+                      <td className="py-6 px-6 text-[#231a15]">
+                        <div className="flex items-center gap-2">
+                          <span>{course.fromDate}</span>
+                          {regStatus.state === 'closed_day7' && (
+                            <span className="bg-[#703100]/10 text-[#703100] text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                              {t.registrationClosedDay7 || 'Closed (Day 7+)'}
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="py-6 px-6 text-[#554339] line-through">
+                      <td className="py-6 px-6 text-[#231a15]">
                         {course.toDate}
                       </td>
                       <td className="py-6 px-6 text-right">
-                        <span className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider">
-                          {t.statusCancelled}
-                        </span>
+                        <div className="inline-flex flex-col items-end">
+                          <button
+                            disabled
+                            title={regStatus.reason}
+                            className={`inline-flex justify-center items-center px-6 py-2.5 rounded-md cursor-not-allowed text-xs font-semibold tracking-wider ${
+                              regStatus.state === 'closed_day7'
+                                ? 'bg-[#703100]/15 text-[#703100] opacity-80'
+                                : 'bg-[#2d4739]/20 text-[#554339] opacity-80'
+                            }`}
+                          >
+                            {regStatus.state === 'closed_day7'
+                              ? t.registrationClosedDay7 || 'Closed (Day 7+)'
+                              : t.btnUpcoming}
+                          </button>
+                          {regStatus.opensOnFormatted && (
+                            <span className="text-[10px] text-[#705d53] font-medium mt-1">
+                              Opens {regStatus.opensOnFormatted}
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -167,7 +198,32 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
           {/* Mobile Card View (Shown only on small screens) */}
           <div className="md:hidden space-y-4">
             {courses.map((course) => {
-              if (course.status === 'open') {
+              const regStatus = getCourseRegistrationStatus(course);
+
+              if (regStatus.state === 'cancelled') {
+                return (
+                  <div
+                    key={course.id}
+                    className="bg-[#fff8f5] p-5 sm:p-6 rounded-xl border border-[#dbc1b4]/40 opacity-60"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-xs font-semibold text-[#554339] block mb-1 line-through">
+                          {course.year}
+                        </span>
+                        <h3 className="font-serif text-xl text-[#554339] line-through font-medium">
+                          {course.fromDate} - {course.toDate}
+                        </h3>
+                      </div>
+                      <span className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider">
+                        {t.statusCancelled}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (regStatus.canRegister) {
                 return (
                   <div
                     key={course.id}
@@ -183,12 +239,12 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                         </h3>
                       </div>
                       <span className="bg-[#2d4739]/10 text-[#2d4739] px-3 py-1 rounded-full text-xs font-semibold">
-                        Open
+                        {regStatus.badgeLabel}
                       </span>
                     </div>
                     <button
                       onClick={() => onSelectCourseForRegistration(course)}
-                      className="w-full inline-flex justify-center items-center px-6 py-3 bg-[#b35c1e] text-white rounded-lg hover:bg-[#944403] transition-colors duration-200 text-xs font-semibold uppercase tracking-wider mt-3 shadow-xs"
+                      className="w-full inline-flex justify-center items-center px-6 py-3 bg-[#b35c1e] text-white rounded-lg hover:bg-[#944403] transition-colors duration-200 text-xs font-semibold uppercase tracking-wider mt-3 shadow-xs cursor-pointer"
                     >
                       {t.btnRegister}
                     </button>
@@ -196,54 +252,45 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                 );
               }
 
-              if (course.status === 'upcoming') {
-                return (
-                  <div
-                    key={course.id}
-                    className="bg-[#fff8f5] p-5 sm:p-6 rounded-xl border border-[#dbc1b4]/60 shadow-xs"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className="text-xs font-semibold text-[#554339] block mb-1">
-                          {course.year}
-                        </span>
-                        <h3 className="font-serif text-xl text-[#2a2825] font-semibold">
-                          {course.fromDate} - {course.toDate}
-                        </h3>
-                      </div>
-                      <span className="bg-[#f7e5dc] text-[#554339] px-3 py-1 rounded-full text-xs font-semibold">
-                        {t.btnUpcoming}
-                      </span>
-                    </div>
-                    <button
-                      disabled
-                      className="w-full inline-flex justify-center items-center px-6 py-3 bg-[#2d4739]/20 text-[#554339] rounded-lg cursor-not-allowed text-xs font-semibold tracking-wider mt-3 opacity-80"
-                    >
-                      {t.btnNotOpen}
-                    </button>
-                  </div>
-                );
-              }
-
-              // Cancelled
+              // Disabled registration card (Upcoming or Day 7+ closed)
               return (
                 <div
                   key={course.id}
-                  className="bg-[#fff8f5] p-5 sm:p-6 rounded-xl border border-[#dbc1b4]/40 opacity-60"
+                  className="bg-[#fff8f5] p-5 sm:p-6 rounded-xl border border-[#dbc1b4]/60 shadow-xs"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <span className="text-xs font-semibold text-[#554339] block mb-1 line-through">
+                      <span className="text-xs font-semibold text-[#554339] block mb-1">
                         {course.year}
                       </span>
-                      <h3 className="font-serif text-xl text-[#554339] line-through font-medium">
+                      <h3 className="font-serif text-xl text-[#2a2825] font-semibold">
                         {course.fromDate} - {course.toDate}
                       </h3>
                     </div>
-                    <span className="text-xs font-bold text-[#ba1a1a] uppercase tracking-wider">
-                      {t.statusCancelled}
+                    <span className="bg-[#f7e5dc] text-[#554339] px-3 py-1 rounded-full text-xs font-semibold">
+                      {regStatus.state === 'closed_day7'
+                        ? t.registrationClosedDay7 || 'Closed (Day 7+)'
+                        : regStatus.badgeLabel}
                     </span>
                   </div>
+                  <button
+                    disabled
+                    title={regStatus.reason}
+                    className={`w-full inline-flex justify-center items-center px-6 py-3 rounded-lg cursor-not-allowed text-xs font-semibold tracking-wider mt-3 opacity-80 ${
+                      regStatus.state === 'closed_day7'
+                        ? 'bg-[#703100]/15 text-[#703100]'
+                        : 'bg-[#2d4739]/20 text-[#554339]'
+                    }`}
+                  >
+                    {regStatus.state === 'closed_day7'
+                      ? t.registrationClosedDay7 || 'Closed (Day 7+)'
+                      : t.btnUpcoming}
+                  </button>
+                  {regStatus.opensOnFormatted && (
+                    <p className="text-[11px] text-center text-[#705d53] mt-2">
+                      Registration opens on {regStatus.opensOnFormatted} (1 month before course)
+                    </p>
+                  )}
                 </div>
               );
             })}

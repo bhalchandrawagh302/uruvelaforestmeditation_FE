@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, CheckCircle2, User, ArrowLeft, Printer, CreditCard, ShieldCheck, X, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, CheckCircle2, User, ArrowLeft, Printer, CreditCard, ShieldCheck, X, AlertCircle, Calendar } from 'lucide-react';
 import { Course, Language, RegistrationFormData } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
 import { uploadImageToR2, deleteImageFromR2, submitCourseRegistration } from '../services/api';
@@ -49,6 +49,17 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
     aadharPhotoUrl: null,
     aadharPhotoKey: null,
   });
+
+  useEffect(() => {
+    if (selectedCourse) {
+      setFormData((prev) => ({
+        ...prev,
+        courseId: selectedCourse.id,
+        arrivalDate: selectedCourse.rawStartDate || prev.arrivalDate,
+        departureDate: selectedCourse.rawEndDate || prev.departureDate,
+      }));
+    }
+  }, [selectedCourse]);
 
   // Profile Photo state
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -122,7 +133,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
         photoKey: result.key,
       }));
     } catch (err: any) {
-      setPhotoError(err.message || 'Failed to upload photo to Cloudflare R2.');
+      setPhotoError(err.message || 'Failed to upload photo. Please try again.');
     } finally {
       setPhotoUploading(false);
     }
@@ -173,7 +184,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
         aadharPhotoKey: result.key,
       }));
     } catch (err: any) {
-      setAadharError(err.message || 'Failed to upload Aadhaar card to Cloudflare R2.');
+      setAadharError(err.message || 'Failed to upload Aadhaar card. Please try again.');
     } finally {
       setAadharUploading(false);
     }
@@ -238,8 +249,8 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
     }
 
     // 2. Dates
-    if (!formData.arrivalDate) errors.arrivalDate = 'Arrival date is required';
-    if (!formData.departureDate) errors.departureDate = 'Departure date is required';
+    if (!formData.arrivalDate) errors.arrivalDate = 'Start date is required';
+    if (!formData.departureDate) errors.departureDate = 'End date is required';
 
     // 3. Personal Info
     if (!formData.fullName.trim()) errors.fullName = 'Full name is required';
@@ -264,6 +275,13 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
     if (formData.previousCourses === '' || formData.previousCourses === undefined) {
       errors.previousCourses = 'Previous courses count is required (enter 0 if none)';
     }
+
+    // 8. Residential Address
+    if (!formData.streetAddress.trim()) errors.streetAddress = 'Street address is required';
+    if (!formData.city.trim()) errors.city = 'City is required';
+    if (!formData.state.trim()) errors.state = 'State is required';
+    if (!formData.country.trim()) errors.country = 'Country is required';
+    if (!formData.zipCode.trim()) errors.zipCode = 'PIN / Zip code is required';
 
     return errors;
   };
@@ -353,13 +371,13 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             <div className="flex items-center gap-2.5 mb-1.5">
               <ShieldCheck className="w-5 h-5 text-[#8c3c0b]" />
               <h3 className="font-serif text-xl font-medium text-[#703100]">
-                Identity Verification & Cloudflare R2 Upload
+                Identity Verification
               </h3>
             </div>
             <p className="text-xs text-[#554339] mb-6">
               Please provide both a candidate selfie photo and an Aadhaar Card image for monastery identification and admittance pass issuance.
               <span className="block sm:inline sm:ml-1.5 font-semibold text-[#8c3c0b]">
-                (Max file size: 5 MB each • Automatic Cloudflare R2 Sync)
+                (Max file size: 5 MB each • JPG, PNG or WebP)
               </span>
             </p>
 
@@ -374,12 +392,12 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                   {photoUploading ? (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#b35c1e] bg-[#fff1eb] px-2.5 py-0.5 rounded-full">
                       <span className="w-2.5 h-2.5 border-2 border-[#b35c1e] border-t-transparent rounded-full animate-spin" />
-                      Uploading to R2...
+                      Uploading...
                     </span>
                   ) : photoPreview ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2d4739] bg-[#e8f5ee] px-2.5 py-0.5 rounded-full">
                       <CheckCircle2 className="w-3 h-3 text-[#2d4739]" />
-                      Saved in R2 {photoSize ? `(${photoSize})` : ''}
+                      Uploaded {photoSize ? `(${photoSize})` : ''}
                     </span>
                   ) : (
                     <span className="text-[10px] font-medium text-[#705d53] bg-[#f7e5dc] px-2 py-0.5 rounded-full">
@@ -434,7 +452,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                         handleRemovePhoto('profile');
                       }}
                       className="absolute -top-1 -right-1 bg-red-600 text-white p-1.5 rounded-full shadow-md hover:bg-red-700 transition-all cursor-pointer"
-                      title="Remove Selfie (deletes from R2)"
+                      title="Remove Selfie"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -485,12 +503,12 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                   {aadharUploading ? (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#b35c1e] bg-[#fff1eb] px-2.5 py-0.5 rounded-full">
                       <span className="w-2.5 h-2.5 border-2 border-[#b35c1e] border-t-transparent rounded-full animate-spin" />
-                      Uploading to R2...
+                      Uploading...
                     </span>
                   ) : aadharPreview ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2d4739] bg-[#e8f5ee] px-2.5 py-0.5 rounded-full">
                       <CheckCircle2 className="w-3 h-3 text-[#2d4739]" />
-                      Saved in R2 {aadharSize ? `(${aadharSize})` : ''}
+                      Uploaded {aadharSize ? `(${aadharSize})` : ''}
                     </span>
                   ) : (
                     <span className="text-[10px] font-medium text-[#705d53] bg-[#f7e5dc] px-2 py-0.5 rounded-full">
@@ -545,7 +563,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                         handleRemovePhoto('aadhar');
                       }}
                       className="absolute -top-1 -right-1 bg-red-600 text-white p-1.5 rounded-full shadow-md hover:bg-red-700 transition-all cursor-pointer"
-                      title="Remove Aadhaar Photo (deletes from R2)"
+                      title="Remove Aadhaar Document"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -589,20 +607,27 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Arrival & Departure Dates */}
+            {/* Start & End Dates (Fixed by selected course, non-editable by user) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-2">
-                  {t.arrivalDate} <span className="text-red-500 font-bold">*</span>
+                  {t.startDate} <span className="text-red-500 font-bold">*</span>
                 </label>
-                <input
-                  type="date"
-                  name="arrivalDate"
-                  value={formData.arrivalDate}
-                  onChange={handleChange}
-                  required
-                  className="form-input w-full text-sm text-[#231a15]"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="arrivalDate"
+                    value={formData.arrivalDate}
+                    readOnly
+                    tabIndex={-1}
+                    aria-readonly="true"
+                    className="form-input w-full text-sm text-[#554339] bg-[#f8f3ee] border-[#dbc1b4] cursor-not-allowed select-none font-medium pr-10"
+                  />
+                  <Calendar className="w-4 h-4 text-[#8a7266] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                <p className="text-[11px] text-[#8a7266] mt-1.5 leading-tight">
+                  {t.dateFixedNotice}
+                </p>
                 {formErrors.arrivalDate && (
                   <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.arrivalDate}</p>
                 )}
@@ -610,16 +635,23 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-2">
-                  {t.departureDate} <span className="text-red-500 font-bold">*</span>
+                  {t.endDate} <span className="text-red-500 font-bold">*</span>
                 </label>
-                <input
-                  type="date"
-                  name="departureDate"
-                  value={formData.departureDate}
-                  onChange={handleChange}
-                  required
-                  className="form-input w-full text-sm text-[#231a15]"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="departureDate"
+                    value={formData.departureDate}
+                    readOnly
+                    tabIndex={-1}
+                    aria-readonly="true"
+                    className="form-input w-full text-sm text-[#554339] bg-[#f8f3ee] border-[#dbc1b4] cursor-not-allowed select-none font-medium pr-10"
+                  />
+                  <Calendar className="w-4 h-4 text-[#8a7266] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                <p className="text-[11px] text-[#8a7266] mt-1.5 leading-tight">
+                  {t.dateFixedNotice}
+                </p>
                 {formErrors.departureDate && (
                   <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.departureDate}</p>
                 )}
@@ -827,56 +859,83 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
               </div>
             </div>
 
-            {/* Address */}
+            {/* Address (Required) */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-2 flex items-center justify-between">
-                <span>{t.address}</span>
-                <span className="text-[10px] font-normal normal-case text-[#887367] bg-[#f7e5dc] px-2 py-0.5 rounded-full">
-                  Optional
-                </span>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-2">
+                {t.address} <span className="text-red-500 font-bold">*</span>
               </label>
-              <input
-                type="text"
-                name="streetAddress"
-                placeholder={t.streetAddress}
-                value={formData.streetAddress}
-                onChange={handleChange}
-                className="form-input w-full text-sm text-[#231a15] mb-6"
-              />
+              <div>
+                <input
+                  type="text"
+                  name="streetAddress"
+                  placeholder={t.streetAddress}
+                  value={formData.streetAddress}
+                  onChange={handleChange}
+                  required
+                  className={`form-input w-full text-sm text-[#231a15] ${formErrors.streetAddress ? 'border-red-500' : ''}`}
+                />
+                {formErrors.streetAddress && (
+                  <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.streetAddress}</p>
+                )}
+              </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <input
-                  type="text"
-                  name="city"
-                  placeholder={t.city}
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="form-input w-full text-sm text-[#231a15]"
-                />
-                <input
-                  type="text"
-                  name="state"
-                  placeholder={t.state}
-                  value={formData.state}
-                  onChange={handleChange}
-                  className="form-input w-full text-sm text-[#231a15]"
-                />
-                <input
-                  type="text"
-                  name="country"
-                  placeholder={t.country}
-                  value={formData.country}
-                  onChange={handleChange}
-                  className="form-input w-full text-sm text-[#231a15]"
-                />
-                <input
-                  type="text"
-                  name="zipCode"
-                  placeholder={t.zipCode}
-                  value={formData.zipCode}
-                  onChange={handleChange}
-                  className="form-input w-full text-sm text-[#231a15]"
-                />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <div>
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder={t.city}
+                    value={formData.city}
+                    onChange={handleChange}
+                    required
+                    className={`form-input w-full text-sm text-[#231a15] ${formErrors.city ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.city && (
+                    <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.city}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="state"
+                    placeholder={t.state}
+                    value={formData.state}
+                    onChange={handleChange}
+                    required
+                    className={`form-input w-full text-sm text-[#231a15] ${formErrors.state ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.state && (
+                    <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.state}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="country"
+                    placeholder={t.country}
+                    value={formData.country}
+                    onChange={handleChange}
+                    required
+                    className={`form-input w-full text-sm text-[#231a15] ${formErrors.country ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.country && (
+                    <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.country}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="zipCode"
+                    placeholder={t.zipCode}
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    required
+                    className={`form-input w-full text-sm text-[#231a15] ${formErrors.zipCode ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.zipCode && (
+                    <p className="text-xs text-[#ba1a1a] mt-1">{formErrors.zipCode}</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -914,7 +973,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 ) : photoUploading || aadharUploading ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Uploading Documents to Cloudflare R2...</span>
+                    <span>Uploading Documents...</span>
                   </>
                 ) : (
                   <span>{t.btnSubmitRegistration}</span>
@@ -995,7 +1054,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             </div>
 
             <p className="text-xs text-[#554339] text-center mb-6 leading-relaxed">
-              May this course bring deep tranquility, mindfulness, and liberation from stress. Please arrive at the registration office between 2:00 PM and 4:00 PM on your arrival date with your Admittance Pass Code.
+              May this course bring deep tranquility, mindfulness, and liberation from stress. Please arrive at the registration office between 2:00 PM and 4:00 PM on your start date with your Admittance Pass Code.
             </p>
 
             <div className="flex flex-wrap gap-3 justify-center">
