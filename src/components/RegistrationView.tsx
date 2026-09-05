@@ -314,7 +314,7 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
   };
 
   return (
-    <div className="pt-24 pb-20 px-4 md:px-6 min-h-screen">
+    <div className="pt-36 sm:pt-40 pb-20 px-4 md:px-6 min-h-screen">
       <div className="max-w-[1120px] mx-auto">
         {/* Back navigation button */}
         <div className="mb-6 max-w-[850px] mx-auto">
