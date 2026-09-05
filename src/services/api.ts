@@ -1,7 +1,10 @@
 import { Course, RegistrationFormData } from '../types';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'https://uruvelaforestmeditation-be.onrender.com/api/v1';
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'https://uruvelaforestmeditation-be.onrender.com'
+).replace(/\/+$/, '');
+
+export const API_V1_URL = `${API_BASE_URL}/api/v1`;
 
 export interface ImageUploadResponse {
   key: string;
@@ -59,7 +62,7 @@ export async function uploadImageToR2(
   const formData = new FormData();
   formData.append('file', file);
 
-  const url = `${API_BASE_URL}/images/upload?folder=${encodeURIComponent(folder)}`;
+  const url = `${API_V1_URL}/images/upload?folder=${encodeURIComponent(folder)}`;
   const response = await fetch(url, {
     method: 'POST',
     body: formData,
@@ -86,7 +89,7 @@ export async function deleteImageFromR2(key: string): Promise<ImageDeleteRespons
   if (!key) return { key: '', deleted: true };
 
   try {
-    const url = `${API_BASE_URL}/images/${encodeURIComponent(key)}`;
+    const url = `${API_V1_URL}/images/${encodeURIComponent(key)}`;
     const response = await fetch(url, {
       method: 'DELETE',
     });
@@ -140,7 +143,7 @@ export async function submitCourseRegistration(
     illness_history: formData.illness.trim() ? formData.illness.trim() : null,
   };
 
-  const response = await fetch(`${API_BASE_URL}/registrations`, {
+  const response = await fetch(`${API_V1_URL}/registrations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
