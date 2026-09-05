@@ -33,7 +33,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
   };
 
   return (
-    <div className="pt-28 pb-20 px-4 md:px-6 min-h-screen">
+    <div className="pt-36 sm:pt-40 pb-20 px-4 md:px-6 min-h-screen">
       <div className="max-w-[1120px] mx-auto">
         {/* Header Section */}
         <div className="mb-12 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">

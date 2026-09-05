@@ -12,7 +12,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ language, onNavigate }) =>
   const t = TRANSLATIONS[language];
 
   return (
-    <div className="pt-28 pb-20 px-4 md:px-6 min-h-screen">
+    <div className="pt-36 sm:pt-40 pb-20 px-4 md:px-6 min-h-screen">
       <div className="max-w-[1120px] mx-auto space-y-16">
         {/* Main Hero Header - Matching Image 21.png */}
         <section className="text-center md:text-left">

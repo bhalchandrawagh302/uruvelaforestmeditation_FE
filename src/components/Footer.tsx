@@ -68,7 +68,7 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigate }) => {
 
               <a
                 id="footer-github-btn"
-                href="https://github.com/uruvela-forest-vihara"
+                href="https://github.com/bhalchandrawagh302/uruvelaforestmeditation_FE"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-[#554339] hover:text-[#703100] transition-colors duration-200 text-left w-fit flex items-center gap-1.5"
@@ -106,7 +106,7 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigate }) => {
                 {/* YouTube */}
                 <a
                   id="footer-youtube-btn"
-                  href="https://www.youtube.com/@UruvelajForestVihara"
+                  href="https://www.youtube.com/@uruvelameditationvipassana"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="YouTube channel"

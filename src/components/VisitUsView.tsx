@@ -40,7 +40,7 @@ export const VisitUsView: React.FC<VisitUsViewProps> = ({ language, onNavigate }
   ];
 
   return (
-    <div className="pt-28 pb-20 px-4 md:px-6 min-h-screen bg-[#fff8f5]">
+    <div className="pt-36 sm:pt-40 pb-20 px-4 md:px-6 min-h-screen bg-[#fff8f5]">
       <div className="max-w-[1120px] mx-auto space-y-14">
 
         {/* ── Hero Heading ── */}

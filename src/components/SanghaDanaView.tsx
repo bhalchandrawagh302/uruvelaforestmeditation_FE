@@ -189,7 +189,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
   };
 
   return (
-    <div className="pt-20 pb-20 min-h-screen">
+    <div className="pt-[117px] pb-20 min-h-screen">
       {/* Hero Section with Lattice pattern - Exactly matching Image 17.png */}
       <section className="relative w-full bg-[#fff1eb] bg-lattice border-b border-[#dbc1b4]/40 py-20 px-4 md:px-6 overflow-hidden">
         <div className="max-w-[1120px] mx-auto text-center relative z-10">

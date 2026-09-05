@@ -26,7 +26,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ language, onNavigate }
   };
 
   return (
-    <div className="pt-28 pb-20 px-4 md:px-6 min-h-screen">
+    <div className="pt-36 sm:pt-40 pb-20 px-4 md:px-6 min-h-screen">
       <div className="max-w-[1120px] mx-auto space-y-12">
         <div>
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#231a15] font-normal tracking-tight mb-3">
