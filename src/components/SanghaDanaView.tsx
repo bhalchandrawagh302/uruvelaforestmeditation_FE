@@ -85,6 +85,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
   const [bookingMealType, setBookingMealType] = useState<'breakfast' | 'lunch' | 'both'>('breakfast');
   const [donorName, setDonorName] = useState('');
   const [dedicationNote, setDedicationNote] = useState('');
+  const [expectedGuests, setExpectedGuests] = useState('');
   const [bookingSuccessToast, setBookingSuccessToast] = useState<string | null>(null);
 
   const currentMonth = MONTH_LIST[currentMonthIndex];
@@ -119,6 +120,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       meal: string;
       donor: string;
       occasion: string;
+      expectedGuests?: number;
       status: 'pending' | 'confirmed' | 'unallocated';
     }
 
@@ -135,9 +137,10 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       const bfAllocated = slot.breakfastBooked || slot.breakfastPending;
       const luAllocated = slot.lunchBooked || slot.lunchPending;
 
-      // Find user dedication note if created in this session
+      // Find user dedication note and guests if created in this session
       const userItem = allocatedList.find((item) => item.id.includes(slot.dateStr));
       const seedOccasion = SEED_OCCASION_MAP[slot.dateStr] || userItem?.occasion || 'Blessings for all beings';
+      const guestsCount = slot.expectedGuests || userItem?.expectedGuests;
 
       // Case 1: Neither is allocated -> Show a single row with "- -"
       if (!bfAllocated && !luAllocated) {
@@ -167,6 +170,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           meal: 'Breakfast & Lunch',
           donor: slot.breakfastDonor,
           occasion: seedOccasion,
+          expectedGuests: guestsCount,
           status: slot.breakfastPending ? 'pending' : 'confirmed',
         });
         return;
@@ -180,6 +184,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           meal: 'Breakfast',
           donor: slot.breakfastDonor || 'Devotee',
           occasion: seedOccasion,
+          expectedGuests: guestsCount,
           status: slot.breakfastPending ? 'pending' : 'confirmed',
         });
       }
@@ -191,6 +196,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           meal: 'Lunch',
           donor: slot.lunchDonor || 'Devotee',
           occasion: seedOccasion,
+          expectedGuests: guestsCount,
           status: slot.lunchPending ? 'pending' : 'confirmed',
         });
       }
@@ -231,6 +237,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     if (bfUnavailable && luUnavailable) return;
 
     setBookingModalSlot(slot);
+    setExpectedGuests('');
     if (meal) {
       setBookingMealType(meal);
     } else if (!bfUnavailable && !luUnavailable) {
@@ -249,6 +256,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     const targetDateStr = bookingModalSlot.dateStr;
     const isBf = bookingMealType === 'breakfast' || bookingMealType === 'both';
     const isLu = bookingMealType === 'lunch' || bookingMealType === 'both';
+    const parsedGuests = expectedGuests.trim() ? parseInt(expectedGuests, 10) || undefined : undefined;
 
     // Set slot to PENDING in the overrides map
     setBookingOverrides((prev) => {
@@ -262,6 +270,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           lunchPending: isLu ? true : existing.lunchPending,
           lunchDonor: isLu ? donorName : existing.lunchDonor,
           pendingDonor: donorName,
+          expectedGuests: parsedGuests,
         },
       };
     });
@@ -290,6 +299,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       meal: mealLabel,
       donor: donorName,
       occasion: dedicationNote.trim() || 'Merit offering for Sangha',
+      expectedGuests: parsedGuests,
       status: 'pending',
     };
 
@@ -303,6 +313,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     setBookingModalSlot(null);
     setDonorName('');
     setDedicationNote('');
+    setExpectedGuests('');
   };
 
   const handleShareWhatsApp = () => {
@@ -574,7 +585,12 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                             : 'text-[#231a15]'
                         }`}
                       >
-                        {item.donor}
+                        <div>{item.donor}</div>
+                        {item.expectedGuests ? (
+                          <div className="text-[11px] text-[#8c3c0b] font-medium mt-0.5">
+                            {item.expectedGuests} {item.expectedGuests === 1 ? 'guest' : 'guests'} attending
+                          </div>
+                        ) : null}
                       </td>
                       <td
                         className={`py-4 px-6 text-xs italic ${
@@ -763,6 +779,21 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                   placeholder="e.g., Birthday, In Memory of Ancestors, Peace"
                   value={dedicationNote}
                   onChange={(e) => setDedicationNote(e.target.value)}
+                  className="form-input w-full text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
+                  Expected Guests (If Arriving, Optional)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  placeholder="e.g., 2, 4 (leave blank if offering remotely)"
+                  value={expectedGuests}
+                  onChange={(e) => setExpectedGuests(e.target.value)}
                   className="form-input w-full text-sm"
                 />
               </div>

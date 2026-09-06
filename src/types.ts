@@ -93,6 +93,7 @@ export interface DanaMealSlot {
   lunchPending?: boolean;
   pendingDonor?: string;
   isEmpty?: boolean;
+  expectedGuests?: number;
 }
 
 export interface AllocatedDanaItem {
@@ -101,6 +102,7 @@ export interface AllocatedDanaItem {
   meal: string;
   donor: string;
   occasion?: string;
+  expectedGuests?: number;
   status: 'pending' | 'confirmed';
 }
 
