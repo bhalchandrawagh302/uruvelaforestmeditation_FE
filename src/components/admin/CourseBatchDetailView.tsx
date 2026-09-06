@@ -42,15 +42,33 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(currentCourse.title);
+  const [editTitle, setEditTitle] = useState(currentCourse.title || '10-Day Meditation Retreat');
   const [editStartDate, setEditStartDate] = useState(currentCourse.rawStartDate || '');
   const [editEndDate, setEditEndDate] = useState(currentCourse.rawEndDate || '');
-  const [editTeacher, setEditTeacher] = useState(currentCourse.teacher);
+  const [editTeacher, setEditTeacher] = useState(currentCourse.teacher || '');
   const [editLocation, setEditLocation] = useState(currentCourse.location || 'Dungeshwari Hall');
   const [editLanguage, setEditLanguage] = useState(currentCourse.language || 'Hindi / English');
   const [editTotalSeats, setEditTotalSeats] = useState(currentCourse.totalSeats || 30);
   const [editAvailableSeats, setEditAvailableSeats] = useState(currentCourse.availableSeats);
   const [editDescription, setEditDescription] = useState(currentCourse.description || '');
+
+  const resetEditForm = (c: Course = currentCourse) => {
+    setEditTitle(c.title || '10-Day Meditation Retreat');
+    setEditStartDate(c.rawStartDate || '');
+    setEditEndDate(c.rawEndDate || '');
+    setEditTeacher(c.teacher || '');
+    setEditLocation(c.location || 'Dungeshwari Hall');
+    setEditLanguage(c.language || 'Hindi / English');
+    setEditTotalSeats(c.totalSeats || 30);
+    setEditAvailableSeats(c.availableSeats);
+    setEditDescription(c.description || '');
+  };
+
+  React.useEffect(() => {
+    setCurrentCourse(course);
+    setStatus(course.status);
+    resetEditForm(course);
+  }, [course]);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);

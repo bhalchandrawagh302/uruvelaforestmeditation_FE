@@ -11,6 +11,8 @@ export const API_V1_URL = `${API_BASE_URL}/api/v1`;
 
 export interface ApiCourse {
   _id: string;
+  title?: string;
+  batch_number?: string;
   year: number;
   from_date_str: string;
   to_date_str: string;
@@ -26,9 +28,11 @@ export interface ApiCourse {
 }
 
 /** Maps a raw backend course record to the frontend Course type. */
-export function mapApiCourseToCourse(raw: ApiCourse): Course {
+export function mapApiCourseToCourse(raw: any): Course {
   return {
-    id: raw._id,
+    id: raw._id || raw.id,
+    title: raw.title || '10-Day Meditation Retreat',
+    batchNumber: raw.batch_number || raw.batchNumber,
     year: String(raw.year),
     fromDate: raw.from_date_str,
     toDate: raw.to_date_str,

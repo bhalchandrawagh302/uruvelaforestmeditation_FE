@@ -4,6 +4,7 @@ export type ScreenType = 'home' | 'courses' | 'register' | 'dana' | 'about' | 't
 
 export interface Course {
   id: string;
+  title: string;
   batchNumber?: string;
   year: string;
   fromDate: string;
