@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, CheckCircle2, User, ArrowLeft, Printer, CreditCard, ShieldCheck, X, AlertCircle, Calendar } from 'lucide-react';
+import { Camera, Upload, CheckCircle2, User, ArrowLeft, CreditCard, ShieldCheck, X, AlertCircle, Calendar } from 'lucide-react';
 import { Course, Language, RegistrationFormData } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
 import { uploadImageToR2, deleteImageFromR2, submitCourseRegistration } from '../services/api';
@@ -994,10 +994,13 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h3 className="font-serif text-2xl sm:text-3xl text-[#703100] font-normal">
-                Registration Confirmed
+                Application Submitted
               </h3>
               <p className="text-xs text-[#554339] mt-1 uppercase tracking-widest font-semibold">
                 Uruvela Forest Vihara • Bodhgaya
+              </p>
+              <p className="text-xs sm:text-sm text-[#705d53] mt-2.5 max-w-md mx-auto leading-relaxed">
+                Your application has been received and is currently under review by our administration. You will be notified soon regarding your application confirmation.
               </p>
             </div>
 
@@ -1011,22 +1014,29 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
                 <span className="font-semibold text-[#b35c1e]">{submittedData.arrivalDate} to {submittedData.departureDate}</span>
               </div>
               <div className="flex justify-between border-b border-[#dbc1b4]/40 pb-2 items-center">
-                <span className="text-[#554339]">Admittance Pass Code:</span>
+                <span className="text-[#554339]">Application Reference:</span>
                 <span className="font-mono font-bold text-[#703100] bg-[#fae3d7] px-2.5 py-1 rounded-md text-sm border border-[#e8c0ab]">
-                  {submittedData.passCode || 'UFV-CONFIRMED'}
+                  {submittedData.passCode || 'UFV-PENDING'}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-[#dbc1b4]/40 pb-2 items-center">
+                <span className="text-[#554339]">Status:</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#fff3e0] text-[#e65100] border border-[#ffe0b2]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e65100] animate-pulse" />
+                  Pending Admin Confirmation
                 </span>
               </div>
               <div className="flex justify-between border-b border-[#dbc1b4]/40 pb-2">
-                <span className="text-[#554339]">Email Confirmation:</span>
-                <span>{submittedData.email || 'Not provided'}</span>
+                <span className="text-[#554339]">Notification Contact:</span>
+                <span>{submittedData.phone || submittedData.email || 'Provided on form'}</span>
               </div>
               <div className="flex justify-between border-b border-[#dbc1b4]/40 pb-2">
                 <span className="text-[#554339]">Accommodation:</span>
-                <span>{submittedData.accommodationAssigned || 'Individual Forest Kuti Assigned'}</span>
+                <span className="italic text-[#705d53]">Assigned upon confirmation</span>
               </div>
               {(submittedData.photoUrl || submittedData.aadharPhotoUrl) && (
                 <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[#554339]">Verified Documents:</span>
+                  <span className="text-[#554339]">Submitted Documents:</span>
                   <div className="flex items-center gap-2.5">
                     {submittedData.photoUrl && (
                       <div className="flex items-center gap-1.5 text-xs text-[#2d4739] font-medium bg-white px-2.5 py-1 rounded-md border border-[#dbc1b4]/60 shadow-2xs">
@@ -1054,23 +1064,16 @@ export const RegistrationView: React.FC<RegistrationViewProps> = ({
             </div>
 
             <p className="text-xs text-[#554339] text-center mb-6 leading-relaxed">
-              May this course bring deep tranquility, mindfulness, and liberation from stress. Please arrive at the registration office between 2:00 PM and 4:00 PM on your start date with your Admittance Pass Code.
+              Please save your Application Reference number for reference. The administrative team will review your details and contact you prior to the retreat start date.
             </p>
 
-            <div className="flex flex-wrap gap-3 justify-center">
-              <button
-                onClick={() => window.print()}
-                className="px-5 py-2.5 rounded-full border border-[#dbc1b4] text-xs font-semibold uppercase tracking-wider text-[#703100] hover:bg-[#fceae2] transition-colors flex items-center gap-2 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Pass</span>
-              </button>
+            <div className="flex justify-center">
               <button
                 onClick={() => {
                   setSubmittedData(null);
                   onBackToCourses();
                 }}
-                className="px-6 py-2.5 rounded-full bg-[#b35c1e] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#944403] transition-colors cursor-pointer"
+                className="px-8 py-2.5 rounded-full bg-[#b35c1e] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#944403] transition-colors cursor-pointer shadow-xs active:scale-98"
               >
                 Return to Sanctuary
               </button>
