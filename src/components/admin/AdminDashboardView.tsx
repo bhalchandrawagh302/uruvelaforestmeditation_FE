@@ -30,11 +30,16 @@ import {
 } from 'lucide-react';
 import { INITIAL_DANA_SCHEDULES, SanghaDanaDaySchedule } from '../../data/adminDanaData';
 import { SanghaDanaManagementView } from './SanghaDanaManagementView';
+import { CourseRegistrationManagementView } from './CourseRegistrationManagementView';
+import { CourseBatchesManagementView } from './CourseBatchesManagementView';
 import { MahabodhiLogo } from '../MahabodhiLogo';
+import { AdminUserProfile, AdminRegistrationRecord, Course } from '../../types';
+import { fetchAdminRegistrations, fetchCourses } from '../../services/api';
 
 interface AdminDashboardViewProps {
   onLogout: () => void;
   onReturnToSite: () => void;
+  adminProfile?: AdminUserProfile | null;
 }
 
 type AdminTab = 'overview' | 'registrations' | 'batches' | 'dana' | 'donations' | 'settings';
@@ -53,11 +58,87 @@ interface RegistrationRecord {
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onLogout,
   onReturnToSite,
+  adminProfile,
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dana');
+  const validTabs: AdminTab[] = ['overview', 'registrations', 'batches', 'dana', 'donations', 'settings'];
+
+  const getInitialTab = (): AdminTab => {
+    // 1. Check URL query params: ?tab=dana or ?tab=registrations
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab')?.toLowerCase();
+    if (tabParam && validTabs.includes(tabParam as AdminTab)) {
+      return tabParam as AdminTab;
+    }
+
+    // 2. Check hash query params: e.g. #dashboard?tab=dana or #tab=dana
+    const rawHash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+    if (rawHash) {
+      if (rawHash.includes('tab=')) {
+        const queryStr = rawHash.includes('?') ? rawHash.split('?')[1] : rawHash;
+        const hashParams = new URLSearchParams(queryStr);
+        const hashTab = hashParams.get('tab')?.toLowerCase();
+        if (hashTab && validTabs.includes(hashTab as AdminTab)) {
+          return hashTab as AdminTab;
+        }
+      }
+
+      // Check if hash matches a tab directly: e.g. #dana or #registrations or dashboard/dana
+      const parts = rawHash.split('/');
+      const lastPart = parts[parts.length - 1].split('?')[0];
+      if (validTabs.includes(lastPart as AdminTab)) {
+        return lastPart as AdminTab;
+      }
+    }
+
+    // 3. Check localStorage (persistent across browser refresh)
+    const savedTab = localStorage.getItem('admin_active_tab')?.toLowerCase();
+    if (savedTab && validTabs.includes(savedTab as AdminTab)) {
+      return savedTab as AdminTab;
+    }
+
+    return 'overview';
+  };
+
+  const [activeTab, setActiveTab] = useState<AdminTab>(getInitialTab);
+
+  const handleTabChange = (tab: AdminTab) => {
+    setActiveTab(tab);
+    localStorage.setItem('admin_active_tab', tab);
+    try {
+      if (window.location.pathname.includes('dashboard')) {
+        const url = new URL(window.location.href);
+        if (tab === 'overview') {
+          url.searchParams.delete('tab');
+        } else {
+          url.searchParams.set('tab', tab);
+        }
+        url.hash = '';
+        window.history.replaceState(null, '', url.toString());
+      } else {
+        const targetHash = tab === 'overview' ? '#dashboard' : `#dashboard?tab=${tab}`;
+        window.history.replaceState(null, '', `/${targetHash}`);
+      }
+    } catch (_) {}
+  };
+
+  // Sync tab on browser back/forward and hash/popstate changes
+  React.useEffect(() => {
+    const handleLocationChange = () => {
+      const currentTab = getInitialTab();
+      setActiveTab(currentTab);
+    };
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [totalRegistrationsCount, setTotalRegistrationsCount] = useState<number>(7);
 
   // Dana Schedules State
   const [danaSchedules, setDanaSchedules] = useState<SanghaDanaDaySchedule[]>(INITIAL_DANA_SCHEDULES);
@@ -158,7 +239,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     }
 
     setShowNewBookingModal(false);
-    setActiveTab('dana');
+    handleTabChange('dana');
     // Reset form
     setNewBookingSponsor('');
     setNewBookingPhone('');
@@ -166,95 +247,54 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setNewBookingDedication('');
   };
 
-  // Initial Mock Registrations matching image + interactive records
-  const [registrations, setRegistrations] = useState<RegistrationRecord[]>([
-    {
-      id: 'REG-101',
-      name: 'Eleanor Vance',
-      course: 'Vipassana 10-Day',
-      date: 'Oct 12, 2026',
-      status: 'Confirmed',
-      email: 'eleanor.vance@example.com',
-      phone: '+1 555-0192',
-      gender: 'Female',
-    },
-    {
-      id: 'REG-102',
-      name: 'Thomas Blackwood',
-      course: 'Weekend Metta',
-      date: 'Oct 14, 2026',
-      status: 'Pending',
-      email: 't.blackwood@example.org',
-      phone: '+1 555-0144',
-      gender: 'Male',
-    },
-    {
-      id: 'REG-103',
-      name: 'Sarah Lin',
-      course: 'Vipassana 10-Day',
-      date: 'Oct 15, 2026',
-      status: 'Confirmed',
-      email: 'sarah.lin@meditation.net',
-      phone: '+91 98450-29182',
-      gender: 'Female',
-    },
-    {
-      id: 'REG-104',
-      name: 'Marcus Aurelius',
-      course: 'Monastic Retreat',
-      date: 'Oct 18, 2026',
-      status: 'Waitlisted',
-      email: 'marcus.a@stoic.org',
-      phone: '+44 7700-900123',
-      gender: 'Male',
-    },
-    {
-      id: 'REG-105',
-      name: 'Elena Rostova',
-      course: 'Weekend Metta',
-      date: 'Oct 20, 2026',
-      status: 'Confirmed',
-      email: 'elena.rostova@peace.org',
-      phone: '+1 555-8821',
-      gender: 'Female',
-    },
-    {
-      id: 'REG-106',
-      name: 'Devendra Sharma',
-      course: 'Vipassana 10-Day',
-      date: 'Nov 01, 2026',
-      status: 'Confirmed',
-      email: 'devendra.sharma@vihara.in',
-      phone: '+91 94231-55091',
-      gender: 'Male',
-    },
-    {
-      id: 'REG-107',
-      name: 'Ananya Deshmukh',
-      course: 'Vipassana 10-Day',
-      date: 'Nov 01, 2026',
-      status: 'Pending',
-      email: 'ananya.d@maharashtra.gov.in',
-      phone: '+91 98220-41002',
-      gender: 'Female',
-    }
-  ]);
+  // Live Data State for Overview Dashboard
+  const [liveRegistrations, setLiveRegistrations] = useState<AdminRegistrationRecord[]>([]);
+  const [liveCourses, setLiveCourses] = useState<Course[]>([]);
+  const [isOverviewLoading, setIsOverviewLoading] = useState<boolean>(true);
 
-  const handleUpdateStatus = (id: string, newStatus: 'Confirmed' | 'Pending' | 'Waitlisted') => {
-    setRegistrations(prev =>
-      prev.map(r => r.id === id ? { ...r, status: newStatus } : r)
-    );
+  const loadOverviewData = async () => {
+    setIsOverviewLoading(true);
+    try {
+      const [regs, crs] = await Promise.all([
+        fetchAdminRegistrations(),
+        fetchCourses(),
+      ]);
+      setLiveRegistrations(regs);
+      setLiveCourses(crs);
+      setTotalRegistrationsCount(regs.length);
+    } catch (err) {
+      console.warn('[Admin Dashboard] Live data fetch error:', err);
+    } finally {
+      setIsOverviewLoading(false);
+    }
   };
 
-  // Filtered registrations
-  const filteredRegistrations = registrations.filter(r => {
-    const matchesSearch = 
-      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.course.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase();
-    return matchesSearch && matchesStatus;
-  });
+  React.useEffect(() => {
+    loadOverviewData();
+  }, []);
+
+  // Filtered registrations for overview display
+  const filteredRegistrations = React.useMemo(() => {
+    return liveRegistrations.filter(r => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = 
+        !q ||
+        r.applicantName.toLowerCase().includes(q) ||
+        r.courseTitle.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.passCode.toLowerCase().includes(q);
+      const matchesStatus = filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [liveRegistrations, searchQuery, filterStatus]);
+
+  const confirmedRegistrationsCount = React.useMemo(() => {
+    return liveRegistrations.filter(r => r.status === 'confirmed').length;
+  }, [liveRegistrations]);
+
+  const upcomingBatchesCount = React.useMemo(() => {
+    return liveCourses.filter(c => c.status === 'open' || c.status === 'upcoming').length;
+  }, [liveCourses]);
 
   return (
     <div className="min-h-screen bg-[#faf5f0] text-[#231a15] flex flex-col md:flex-row font-sans selection:bg-[#ffdbc9] selection:text-[#703100]">
@@ -288,7 +328,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <nav className="space-y-1.5 text-sm">
             <button
               id="admin-nav-overview"
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleTabChange('overview')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left font-medium transition-all ${
                 activeTab === 'overview'
                   ? 'bg-[#f6eee8] text-[#703100] font-semibold shadow-xs'
@@ -301,7 +341,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
             <button
               id="admin-nav-dana"
-              onClick={() => setActiveTab('dana')}
+              onClick={() => handleTabChange('dana')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left font-medium transition-all ${
                 activeTab === 'dana'
                   ? 'bg-[#f6eee8] text-[#703100] font-semibold shadow-xs'
@@ -317,7 +357,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
             <button
               id="admin-nav-registrations"
-              onClick={() => setActiveTab('registrations')}
+              onClick={() => handleTabChange('registrations')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left font-medium transition-all ${
                 activeTab === 'registrations'
                   ? 'bg-[#f6eee8] text-[#703100] font-semibold shadow-xs'
@@ -329,13 +369,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <span>Registrations</span>
               </div>
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#dfcdc1] text-[#703100] font-bold">
-                142
+                {totalRegistrationsCount}
               </span>
             </button>
 
             <button
               id="admin-nav-batches"
-              onClick={() => setActiveTab('batches')}
+              onClick={() => handleTabChange('batches')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left font-medium transition-all ${
                 activeTab === 'batches'
                   ? 'bg-[#f6eee8] text-[#703100] font-semibold shadow-xs'
@@ -348,7 +388,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
             <button
               id="admin-nav-donations"
-              onClick={() => setActiveTab('donations')}
+              onClick={() => handleTabChange('donations')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left font-medium transition-all ${
                 activeTab === 'donations'
                   ? 'bg-[#f6eee8] text-[#703100] font-semibold shadow-xs'
@@ -365,7 +405,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         <div className="pt-6 border-t border-[#dbc1b4]/60 space-y-1.5 text-sm">
           <button
             id="admin-nav-settings"
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleTabChange('settings')}
             className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-left font-medium transition-all ${
               activeTab === 'settings'
                 ? 'bg-[#f6eee8] text-[#703100] font-semibold'
@@ -384,9 +424,29 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <span>View Sanctuary Site</span>
           </button>
 
+          {adminProfile && (
+            <div className="p-2.5 rounded-xl bg-[#f4ebe3] border border-[#dbc1b4]/60 text-xs">
+              <div className="font-semibold text-[#231a15] truncate">
+                {adminProfile.full_name || 'Administrator'}
+              </div>
+              <div className="text-[11px] text-[#705d53] truncate">
+                {adminProfile.email}
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#dfcdc1] text-[#703100] uppercase tracking-wider">
+                  {adminProfile.role}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2e7d32]" title="Active Session" />
+              </div>
+            </div>
+          )}
+
           <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-left text-xs font-medium text-red-700 hover:bg-red-50 transition-all"
+            onClick={() => {
+              localStorage.removeItem('admin_active_tab');
+              onLogout();
+            }}
+            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-left text-xs font-medium text-red-700 hover:bg-red-50 transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
@@ -465,8 +525,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
         {/* Dashboard Body */}
         <div className="p-6 sm:p-8 space-y-7 max-w-7xl">
-          {/* Breadcrumb & Main Heading (Only when not in Dana tab, as Dana has its own matching header) */}
-          {activeTab !== 'dana' && (
+          {/* Breadcrumb & Main Heading (Only when not in Dana, Registrations, or Batches tab, as they have their own matching header) */}
+          {activeTab !== 'dana' && activeTab !== 'registrations' && activeTab !== 'batches' && (
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs text-[#705d53]">
                 <span>Admin</span>
@@ -513,21 +573,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Active Registrants */}
+                {/* 2. Confirmed Meditators */}
                 <div className="bg-white rounded-2xl p-6 border border-[#dbc1b4]/50 shadow-xs flex flex-col justify-between">
                   <div className="flex items-start justify-between">
-                    <span className="text-xs font-semibold text-[#554339]">Active Registrants</span>
+                    <span className="text-xs font-semibold text-[#554339]">Confirmed Meditators</span>
                     <div className="w-7 h-7 rounded-lg bg-[#fff1eb] flex items-center justify-center text-[#8c3c0b]">
                       <UserCheck className="w-4 h-4" />
                     </div>
                   </div>
                   <div className="my-3">
                     <div className="font-serif text-3xl font-normal text-[#231a15] tracking-tight">
-                      142
+                      {isOverviewLoading ? '...' : confirmedRegistrationsCount}
                     </div>
                   </div>
                   <div className="text-xs text-[#705d53]">
-                    Currently in retreat
+                    {liveRegistrations.length} total applications received
                   </div>
                 </div>
 
@@ -553,18 +613,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 {/* 4. Upcoming Batches */}
                 <div className="bg-white rounded-2xl p-6 border border-[#dbc1b4]/50 shadow-xs flex flex-col justify-between">
                   <div className="flex items-start justify-between">
-                    <span className="text-xs font-semibold text-[#554339]">Upcoming Batches</span>
+                    <span className="text-xs font-semibold text-[#554339]">Scheduled Batches</span>
                     <div className="w-7 h-7 rounded-lg bg-[#fff1eb] flex items-center justify-center text-[#8c3c0b]">
                       <Layers className="w-4 h-4" />
                     </div>
                   </div>
                   <div className="my-3">
                     <div className="font-serif text-3xl font-normal text-[#231a15] tracking-tight">
-                      3
+                      {isOverviewLoading ? '...' : upcomingBatchesCount}
                     </div>
                   </div>
                   <div className="text-xs text-[#705d53]">
-                    Next begins in 14 days
+                    {liveCourses.length} retreat batches on schedule
                   </div>
                 </div>
               </div>
@@ -578,8 +638,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       Recent Registrations
                     </h2>
                     <button
-                      onClick={() => setActiveTab('registrations')}
-                      className="text-xs font-bold text-[#8c3c0b] hover:text-[#703100] flex items-center gap-1 uppercase tracking-wider transition-colors"
+                      onClick={() => handleTabChange('registrations')}
+                      className="text-xs font-bold text-[#8c3c0b] hover:text-[#703100] flex items-center gap-1 uppercase tracking-wider transition-colors cursor-pointer"
                     >
                       <span>View All</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -597,40 +657,51 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#f3e7df]">
-                        {filteredRegistrations.slice(0, 5).map((reg, index) => {
-                          const isWarmRow = index % 2 === 1;
-                          return (
-                            <tr 
-                              key={reg.id} 
-                              className={`transition-colors hover:bg-[#fbf4ee] ${
-                                isWarmRow ? 'bg-[#fff9f5]' : 'bg-white'
-                              }`}
-                            >
-                              <td className="py-4 px-6 font-medium text-[#231a15]">
-                                {reg.name}
-                              </td>
-                              <td className="py-4 px-4 text-[#554339]">
-                                {reg.course}
-                              </td>
-                              <td className="py-4 px-4 text-[#705d53] whitespace-nowrap">
-                                {reg.date}
-                              </td>
-                              <td className="py-4 px-6 text-right">
-                                <span
-                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                                    reg.status === 'Confirmed'
-                                      ? 'bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]'
-                                      : reg.status === 'Pending'
-                                      ? 'bg-[#fff3e0] text-[#e65100] border border-[#ffe0b2]'
-                                      : 'bg-[#fbe9e7] text-[#d84315] border border-[#ffccbc]'
-                                  }`}
-                                >
-                                  {reg.status}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {filteredRegistrations.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="py-8 text-center text-[#887367] text-xs">
+                              {isOverviewLoading ? 'Loading registrations from database...' : 'No registrations found.'}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredRegistrations.slice(0, 5).map((reg, index) => {
+                            const isWarmRow = index % 2 === 1;
+                            const statusStr = reg.status.toLowerCase();
+                            return (
+                              <tr 
+                                key={reg.id} 
+                                className={`transition-colors hover:bg-[#fbf4ee] ${
+                                  isWarmRow ? 'bg-[#fff9f5]' : 'bg-white'
+                                }`}
+                              >
+                                <td className="py-4 px-6 font-medium text-[#231a15]">
+                                  {reg.applicantName}
+                                </td>
+                                <td className="py-4 px-4 text-[#554339]">
+                                  {reg.courseTitle}
+                                </td>
+                                <td className="py-4 px-4 text-[#705d53] whitespace-nowrap">
+                                  {reg.date}
+                                </td>
+                                <td className="py-4 px-6 text-right">
+                                  <span
+                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                                      statusStr === 'confirmed'
+                                        ? 'bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]'
+                                        : statusStr === 'pending'
+                                        ? 'bg-[#fff3e0] text-[#e65100] border border-[#ffe0b2]'
+                                        : statusStr === 'waitlisted'
+                                        ? 'bg-[#fbe9e7] text-[#d84315] border border-[#ffccbc]'
+                                        : 'bg-[#ede7f6] text-[#5e35b1] border border-[#d1c4e9]'
+                                    }`}
+                                  >
+                                    {reg.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -750,144 +821,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           {/* REGISTRATIONS TAB CONTENT */}
           {activeTab === 'registrations' && (
-            <div className="bg-white rounded-2xl border border-[#dbc1b4]/50 shadow-xs p-6 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="text-xs bg-[#f4ebe3] border border-[#dccbc0] rounded-lg px-3 py-2 text-[#231a15] outline-none"
-                  >
-                    <option value="all">All Statuses ({registrations.length})</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="pending">Pending Review</option>
-                    <option value="waitlisted">Waitlisted</option>
-                  </select>
-                </div>
-                <div className="text-xs text-[#705d53]">
-                  Showing {filteredRegistrations.length} retreat applicants
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-[#f3e7df] text-[#705d53] font-medium text-xs">
-                      <th className="py-3 px-4">Applicant</th>
-                      <th className="py-3 px-4">Course</th>
-                      <th className="py-3 px-4">Contact</th>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#f3e7df]">
-                    {filteredRegistrations.map((reg) => (
-                      <tr key={reg.id} className="hover:bg-[#fdfaf8]">
-                        <td className="py-4 px-4 font-semibold text-[#231a15]">
-                          <div>{reg.name}</div>
-                          <div className="text-[11px] text-[#887367] font-normal">{reg.gender} • ID: {reg.id}</div>
-                        </td>
-                        <td className="py-4 px-4 text-[#554339]">
-                          {reg.course}
-                        </td>
-                        <td className="py-4 px-4 text-xs text-[#554339]">
-                          <div>{reg.email}</div>
-                          <div className="text-[11px] text-[#887367]">{reg.phone}</div>
-                        </td>
-                        <td className="py-4 px-4 text-[#705d53] whitespace-nowrap">
-                          {reg.date}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              reg.status === 'Confirmed'
-                                ? 'bg-[#e8f5e9] text-[#2e7d32]'
-                                : reg.status === 'Pending'
-                                ? 'bg-[#fff3e0] text-[#e65100]'
-                                : 'bg-[#fbe9e7] text-[#d84315]'
-                            }`}
-                          >
-                            {reg.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {reg.status !== 'Confirmed' && (
-                              <button
-                                onClick={() => handleUpdateStatus(reg.id, 'Confirmed')}
-                                className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-medium rounded-lg transition-colors"
-                              >
-                                Approve
-                              </button>
-                            )}
-                            {reg.status !== 'Waitlisted' && (
-                              <button
-                                onClick={() => handleUpdateStatus(reg.id, 'Waitlisted')}
-                                className="px-2.5 py-1 bg-[#f4ebe3] hover:bg-[#e4d3c7] text-[#703100] text-xs font-medium rounded-lg transition-colors"
-                              >
-                                Waitlist
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <CourseRegistrationManagementView onTotalCountChange={setTotalRegistrationsCount} />
           )}
 
           {/* COURSE BATCHES TAB */}
           {activeTab === 'batches' && (
-            <div className="bg-white rounded-2xl border border-[#dbc1b4]/50 shadow-xs p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-xl text-[#231a15]">Vipassana Retreat Schedule (2026–2027)</h3>
-                  <p className="text-xs text-[#705d53]">Manage residential course capacities and registration windows</p>
-                </div>
-                <button
-                  onClick={() => alert('New retreat batch creation dialog.')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#8c3c0b] text-white text-xs font-semibold rounded-xl hover:bg-[#722f07] transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Batch</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="p-5 rounded-xl border border-[#dbc1b4]/60 bg-[#fff8f5] space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#8c3c0b]">Batch #2026-01</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#e8f5e9] text-[#2e7d32] font-semibold text-[11px]">Open (12 left)</span>
-                  </div>
-                  <h4 className="font-serif text-lg text-[#231a15]">10-Day Vipassana</h4>
-                  <p className="text-xs text-[#554339]">Oct 15 - Oct 26, 2026</p>
-                  <div className="text-[11px] text-[#887367]">Teacher: Senior Sayadaw • Dungeshwari Hall</div>
-                </div>
-
-                <div className="p-5 rounded-xl border border-[#dbc1b4]/60 bg-[#fff8f5] space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#8c3c0b]">Batch #2026-02</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#e8f5e9] text-[#2e7d32] font-semibold text-[11px]">Open (8 left)</span>
-                  </div>
-                  <h4 className="font-serif text-lg text-[#231a15]">10-Day Vipassana</h4>
-                  <p className="text-xs text-[#554339]">Nov 12 - Nov 23, 2026</p>
-                  <div className="text-[11px] text-[#887367]">Teacher: Sayadaw U Nandiya • Dungeshwari Hall</div>
-                </div>
-
-                <div className="p-5 rounded-xl border border-[#dbc1b4]/60 bg-[#fff8f5] space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#8c3c0b]">Batch #2027-01</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#fff3e0] text-[#e65100] font-semibold text-[11px]">Upcoming (35 left)</span>
-                  </div>
-                  <h4 className="font-serif text-lg text-[#231a15]">Monastic Rain Retreat</h4>
-                  <p className="text-xs text-[#554339]">Jan 10 - Jan 21, 2027</p>
-                  <div className="text-[11px] text-[#887367]">Teacher: Sayadaw U Tejaniya • Forest Kutis</div>
-                </div>
-              </div>
-            </div>
+            <CourseBatchesManagementView />
           )}
 
           {/* SANGHA DANA / MEAL BOOKINGS TAB */}

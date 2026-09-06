@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { loginAdmin } from '../../services/api';
 
 interface AdminLoginViewProps {
   onLoginSuccess: () => void;
@@ -10,27 +11,31 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   onLoginSuccess,
   onBackToHome,
 }) => {
-  const [email, setEmail] = useState('monk@vihara.org');
-  const [password, setPassword] = useState('••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Please provide your admin email and password.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
-    // Simulate authentication check
-    setTimeout(() => {
+    try {
+      await loginAdmin(email, password);
+      onLoginSuccess();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Authentication failed. Please verify credentials.');
+    } finally {
       setIsLoading(false);
-      if (email.trim().length > 0) {
-        onLoginSuccess();
-      } else {
-        setError('Please enter a valid monastic administrator email.');
-      }
-    }, 450);
+    }
   };
 
   return (

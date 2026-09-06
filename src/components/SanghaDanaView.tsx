@@ -84,7 +84,10 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
   const [bookingModalSlot, setBookingModalSlot] = useState<DanaMealSlot | null>(null);
   const [bookingMealType, setBookingMealType] = useState<'breakfast' | 'lunch' | 'both'>('breakfast');
   const [donorName, setDonorName] = useState('');
+  const [donorPhone, setDonorPhone] = useState('');
+  const [donorEmail, setDonorEmail] = useState('');
   const [dedicationNote, setDedicationNote] = useState('');
+  const [expectedGuests, setExpectedGuests] = useState('');
   const [bookingSuccessToast, setBookingSuccessToast] = useState<string | null>(null);
 
   const currentMonth = MONTH_LIST[currentMonthIndex];
@@ -119,6 +122,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       meal: string;
       donor: string;
       occasion: string;
+      expectedGuests?: number;
       status: 'pending' | 'confirmed' | 'unallocated';
     }
 
@@ -135,9 +139,10 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       const bfAllocated = slot.breakfastBooked || slot.breakfastPending;
       const luAllocated = slot.lunchBooked || slot.lunchPending;
 
-      // Find user dedication note if created in this session
+      // Find user dedication note and guests if created in this session
       const userItem = allocatedList.find((item) => item.id.includes(slot.dateStr));
       const seedOccasion = SEED_OCCASION_MAP[slot.dateStr] || userItem?.occasion || 'Blessings for all beings';
+      const guestsCount = slot.expectedGuests || userItem?.expectedGuests;
 
       // Case 1: Neither is allocated -> Show a single row with "- -"
       if (!bfAllocated && !luAllocated) {
@@ -167,6 +172,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           meal: 'Breakfast & Lunch',
           donor: slot.breakfastDonor,
           occasion: seedOccasion,
+          expectedGuests: guestsCount,
           status: slot.breakfastPending ? 'pending' : 'confirmed',
         });
         return;
@@ -180,6 +186,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           meal: 'Breakfast',
           donor: slot.breakfastDonor || 'Devotee',
           occasion: seedOccasion,
+          expectedGuests: guestsCount,
           status: slot.breakfastPending ? 'pending' : 'confirmed',
         });
       }
@@ -191,6 +198,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           meal: 'Lunch',
           donor: slot.lunchDonor || 'Devotee',
           occasion: seedOccasion,
+          expectedGuests: guestsCount,
           status: slot.lunchPending ? 'pending' : 'confirmed',
         });
       }
@@ -231,6 +239,9 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     if (bfUnavailable && luUnavailable) return;
 
     setBookingModalSlot(slot);
+    setDonorPhone('');
+    setDonorEmail('');
+    setExpectedGuests('');
     if (meal) {
       setBookingMealType(meal);
     } else if (!bfUnavailable && !luUnavailable) {
@@ -244,11 +255,14 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bookingModalSlot || !donorName.trim()) return;
+    if (!bookingModalSlot || !donorName.trim() || !donorPhone.trim()) return;
 
     const targetDateStr = bookingModalSlot.dateStr;
     const isBf = bookingMealType === 'breakfast' || bookingMealType === 'both';
     const isLu = bookingMealType === 'lunch' || bookingMealType === 'both';
+    const parsedGuests = expectedGuests.trim() ? parseInt(expectedGuests, 10) || undefined : undefined;
+    const cleanPhone = donorPhone.trim();
+    const cleanEmail = donorEmail.trim() || undefined;
 
     // Set slot to PENDING in the overrides map
     setBookingOverrides((prev) => {
@@ -262,6 +276,9 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           lunchPending: isLu ? true : existing.lunchPending,
           lunchDonor: isLu ? donorName : existing.lunchDonor,
           pendingDonor: donorName,
+          phone: cleanPhone,
+          email: cleanEmail,
+          expectedGuests: parsedGuests,
         },
       };
     });
@@ -289,7 +306,10 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       dateDisplay,
       meal: mealLabel,
       donor: donorName,
+      phone: cleanPhone,
+      email: cleanEmail,
       occasion: dedicationNote.trim() || 'Merit offering for Sangha',
+      expectedGuests: parsedGuests,
       status: 'pending',
     };
 
@@ -302,7 +322,10 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
     setBookingModalSlot(null);
     setDonorName('');
+    setDonorPhone('');
+    setDonorEmail('');
     setDedicationNote('');
+    setExpectedGuests('');
   };
 
   const handleShareWhatsApp = () => {
@@ -574,7 +597,12 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                             : 'text-[#231a15]'
                         }`}
                       >
-                        {item.donor}
+                        <div>{item.donor}</div>
+                        {item.expectedGuests ? (
+                          <div className="text-[11px] text-[#8c3c0b] font-medium mt-0.5">
+                            {item.expectedGuests} {item.expectedGuests === 1 ? 'guest' : 'guests'} attending
+                          </div>
+                        ) : null}
                       </td>
                       <td
                         className={`py-4 px-6 text-xs italic ${
@@ -625,7 +653,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       {/* Booking Modal */}
       {bookingModalSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-[#fff8f5] border border-[#dbc1b4] rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+          <div className="bg-[#fff8f5] border border-[#dbc1b4] rounded-2xl max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setBookingModalSlot(null)}
               className="absolute top-4 right-4 p-2 text-[#554339] hover:text-[#703100] rounded-full hover:bg-[#f7e5dc]"
@@ -756,6 +784,33 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g., +91 98765 43210"
+                  value={donorPhone}
+                  onChange={(e) => setDonorPhone(e.target.value)}
+                  className="form-input w-full text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g., donor@example.com"
+                  value={donorEmail}
+                  onChange={(e) => setDonorEmail(e.target.value)}
+                  className="form-input w-full text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
                   Occasion or Dedication (Optional)
                 </label>
                 <input
@@ -763,6 +818,21 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
                   placeholder="e.g., Birthday, In Memory of Ancestors, Peace"
                   value={dedicationNote}
                   onChange={(e) => setDedicationNote(e.target.value)}
+                  className="form-input w-full text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
+                  Expected Guests Arriving (Optional)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  placeholder="e.g., 2, 4 (leave blank if offering remotely)"
+                  value={expectedGuests}
+                  onChange={(e) => setExpectedGuests(e.target.value)}
                   className="form-input w-full text-sm"
                 />
               </div>

@@ -4,6 +4,8 @@ export type ScreenType = 'home' | 'courses' | 'register' | 'dana' | 'about' | 't
 
 export interface Course {
   id: string;
+  title: string;
+  batchNumber?: string;
   year: string;
   fromDate: string;
   toDate: string;
@@ -16,6 +18,40 @@ export interface Course {
   totalSeats?: number;
   location?: string;
   description?: string;
+}
+
+export type RegistrationStatus = 'pending' | 'confirmed' | 'waitlisted' | 'cancelled' | 'completed';
+
+export interface AdminRegistrationRecord {
+  id: string;
+  passCode: string;
+  applicantName: string;
+  fatherName: string;
+  dob: string;
+  age: number;
+  gender: 'Male' | 'Female' | 'Other' | 'male' | 'female' | 'other';
+  phone: string;
+  email: string;
+  emergencyContact: string;
+  aadharPan: string;
+  previousCourses: number;
+  courseId: string;
+  courseTitle: string;
+  courseDates: string;
+  teacher?: string;
+  date: string; // Formatted application date, e.g. "Oct 12, 2026"
+  status: RegistrationStatus;
+  accommodationAssigned?: string;
+  illnessHistory?: string;
+  photoUrl?: string;
+  aadharDocumentUrl?: string;
+  streetAddress?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  adminNotes?: string;
+  createdAt?: string;
 }
 
 export interface RegistrationFormData {
@@ -57,6 +93,9 @@ export interface DanaMealSlot {
   lunchPending?: boolean;
   pendingDonor?: string;
   isEmpty?: boolean;
+  expectedGuests?: number;
+  phone?: string;
+  email?: string;
 }
 
 export interface AllocatedDanaItem {
@@ -64,7 +103,10 @@ export interface AllocatedDanaItem {
   dateDisplay: string;
   meal: string;
   donor: string;
+  phone?: string;
+  email?: string;
   occasion?: string;
+  expectedGuests?: number;
   status: 'pending' | 'confirmed';
 }
 
@@ -76,4 +118,14 @@ export interface DhammaTalk {
   duration: string;
   category: string;
   audioUrl?: string;
+}
+
+export interface AdminUserProfile {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  role: 'ADMIN' | 'USER' | 'MANAGER';
+  is_active: boolean;
+  last_login_at?: string | null;
+  created_at?: string;
 }
