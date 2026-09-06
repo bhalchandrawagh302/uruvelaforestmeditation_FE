@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Language, ScreenType, Course, RegistrationFormData, DhammaTalk } from './types';
+import { Language, ScreenType, Course, RegistrationFormData, DhammaTalk, AdminUserProfile } from './types';
 import { DHAMMA_TALKS_LIST } from './data/monasteryData';
-import { fetchCourses } from './services/api';
+import { fetchCourses, fetchAdminProfile, logoutAdmin } from './services/api';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { NavigationDrawer } from './components/NavigationDrawer';
@@ -48,6 +48,8 @@ export function App() {
   // ── State ────────────────────────────────────────────────────────────────
   const [currentScreen, setCurrentScreen] = useState<ScreenType>(getScreenFromLocation);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [adminProfile, setAdminProfile] = useState<AdminUserProfile | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [language, setLanguage] = useState<Language>('en');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -55,6 +57,43 @@ export function App() {
   const [coursesError, setCoursesError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [activeTalk, setActiveTalk] = useState<DhammaTalk | null>(null);
+
+  // ── Verify session on mount ──────────────────────────────────────────────
+  useEffect(() => {
+    let isMounted = true;
+    const verifySession = async () => {
+      try {
+        const profile = await fetchAdminProfile();
+        if (isMounted) {
+          if (profile && profile.is_active) {
+            setAdminProfile(profile);
+            setIsAdminLoggedIn(true);
+          } else {
+            setAdminProfile(null);
+            setIsAdminLoggedIn(false);
+            if (window.location.pathname.includes('dashboard') || window.location.hash.includes('dashboard')) {
+              setCurrentScreen('admin-login');
+            }
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setAdminProfile(null);
+          setIsAdminLoggedIn(false);
+          if (window.location.pathname.includes('dashboard') || window.location.hash.includes('dashboard')) {
+            setCurrentScreen('admin-login');
+          }
+        }
+      } finally {
+        if (isMounted) setIsAuthChecking(false);
+      }
+    };
+
+    verifySession();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // ── API: Load courses ────────────────────────────────────────────────────
   const loadCourses = useCallback(async () => {
@@ -116,12 +155,18 @@ export function App() {
     setIsDrawerOpen(false);
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
+    try {
+      const profile = await fetchAdminProfile();
+      setAdminProfile(profile);
+    } catch {}
     setIsAdminLoggedIn(true);
     setCurrentScreen('dashboard');
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    await logoutAdmin();
+    setAdminProfile(null);
     setIsAdminLoggedIn(false);
     setCurrentScreen('admin-login');
   };
@@ -151,10 +196,33 @@ export function App() {
   }
 
   if (currentScreen === 'dashboard') {
+    // Show calm loading screen while verifying session
+    if (isAuthChecking) {
+      return (
+        <div className="min-h-screen bg-[#ede3db] flex flex-col items-center justify-center p-6 select-none">
+          <div className="flex flex-col items-center gap-3 animate-fade-in text-center">
+            <div className="w-10 h-10 rounded-full border-3 border-[#8c3c0b]/20 border-t-[#8c3c0b] animate-spin" />
+            <p className="font-serif text-sm text-[#705d53]">Verifying Vihara Stewardship Session...</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Redirect to login if unauthenticated
+    if (!isAdminLoggedIn) {
+      return (
+        <AdminLoginView
+          onLoginSuccess={handleLoginSuccess}
+          onBackToHome={() => handleNavigate('home')}
+        />
+      );
+    }
+
     return (
       <AdminDashboardView
         onLogout={handleAdminLogout}
         onReturnToSite={() => handleNavigate('home')}
+        adminProfile={adminProfile}
       />
     );
   }
