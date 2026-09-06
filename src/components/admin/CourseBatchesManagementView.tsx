@@ -11,14 +11,16 @@ import { CreateBatchModal } from './CreateBatchModal';
 import { CourseBatchDetailView } from './CourseBatchDetailView';
 
 export const CourseBatchesManagementView: React.FC = () => {
-  const [courses, setCourses] = useState<Course[]>(INITIAL_RETREAT_BATCHES);
-  const [loading, setLoading] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Load courses from backend, falling back to INITIAL_RETREAT_BATCHES
+  // Load courses from backend database
   const loadBatches = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await fetchCourses();
       if (Array.isArray(data) && data.length > 0) {
@@ -31,9 +33,14 @@ export const CourseBatchesManagementView: React.FC = () => {
           return c;
         });
         setCourses(formatted);
+      } else if (Array.isArray(data) && data.length === 0) {
+        setCourses([]);
       }
     } catch (err) {
-      console.warn('[Admin Batches] Could not fetch remote courses, using local seed:', err);
+      console.warn('[Admin Batches] Could not fetch remote courses:', err);
+      setFetchError(err instanceof Error ? err.message : 'Failed to fetch courses from server.');
+      // Fallback only if state is empty
+      setCourses((prev) => (prev.length > 0 ? prev : INITIAL_RETREAT_BATCHES));
     } finally {
       setLoading(false);
     }
@@ -109,58 +116,78 @@ export const CourseBatchesManagementView: React.FC = () => {
           </button>
         </div>
 
-        {/* Retreat Batches Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {courses.map((course, idx) => {
-            const batchNum = course.batchNumber || `Batch #${course.year}-${String(idx + 1).padStart(2, '0')}`;
-            const isOpen = course.status === 'open';
-            const isUpcoming = course.status === 'upcoming';
-            const isCancelled = course.status === 'cancelled';
-            const isCompleted = course.status === 'completed';
+        {/* Retreat Batches Grid / Loading / Error */}
+        {loading ? (
+          <div className="py-16 flex flex-col items-center justify-center gap-3 text-[#705d53]">
+            <div className="w-8 h-8 rounded-full border-3 border-[#8c3c0b]/20 border-t-[#8c3c0b] animate-spin" />
+            <p className="text-xs font-medium">Loading retreat batches from database...</p>
+          </div>
+        ) : fetchError && courses.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-red-50 border border-red-200 text-center space-y-3">
+            <p className="text-xs text-red-700 font-medium">{fetchError}</p>
+            <button
+              onClick={loadBatches}
+              className="px-4 py-1.5 bg-[#8c3c0b] text-white text-xs font-semibold rounded-xl hover:bg-[#722f07] transition-colors cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="py-16 text-center text-[#705d53] text-xs">
+            No retreat batches found on schedule. Click "Add Batch" above to create one.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {courses.map((course, idx) => {
+              const batchNum = course.batchNumber || `Batch #${course.year}-${String(idx + 1).padStart(2, '0')}`;
+              const isOpen = course.status === 'open';
+              const isUpcoming = course.status === 'upcoming';
+              const isCancelled = course.status === 'cancelled';
 
-            return (
-              <div
-                key={course.id}
-                onClick={() => setSelectedCourseId(course.id)}
-                className="p-5 rounded-xl border border-[#dbc1b4]/60 bg-[#fff8f5] hover:bg-[#fff2e8] hover:border-[#8c3c0b]/40 hover:shadow-xs transition-all cursor-pointer space-y-3 group"
-              >
-                {/* Header row: Batch # and Status Badge */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#8c3c0b]">{batchNum}</span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full font-semibold text-[11px] capitalize ${
-                      isOpen
-                        ? 'bg-[#e8f5e9] text-[#2e7d32]'
-                        : isUpcoming
-                        ? 'bg-[#fff3e0] text-[#e65100]'
-                        : isCancelled
-                        ? 'bg-[#fbe9e7] text-[#d84315]'
-                        : 'bg-[#f5f5f5] text-[#757575]'
-                    }`}
-                  >
-                    {course.status} ({course.availableSeats} left)
-                  </span>
+              return (
+                <div
+                  key={course.id}
+                  onClick={() => setSelectedCourseId(course.id)}
+                  className="p-5 rounded-xl border border-[#dbc1b4]/60 bg-[#fff8f5] hover:bg-[#fff2e8] hover:border-[#8c3c0b]/40 hover:shadow-xs transition-all cursor-pointer space-y-3 group"
+                >
+                  {/* Header row: Batch # and Status Badge */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-[#8c3c0b]">{batchNum}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full font-semibold text-[11px] capitalize ${
+                        isOpen
+                          ? 'bg-[#e8f5e9] text-[#2e7d32]'
+                          : isUpcoming
+                          ? 'bg-[#fff3e0] text-[#e65100]'
+                          : isCancelled
+                          ? 'bg-[#fbe9e7] text-[#d84315]'
+                          : 'bg-[#f5f5f5] text-[#757575]'
+                      }`}
+                    >
+                      {course.status} ({course.availableSeats} left)
+                    </span>
+                  </div>
+
+                  {/* Course Title */}
+                  <h4 className="font-serif text-lg text-[#231a15] group-hover:text-[#8c3c0b] transition-colors">
+                    {course.title}
+                  </h4>
+
+                  {/* Dates */}
+                  <p className="text-xs text-[#554339]">
+                    {course.fromDate} - {course.toDate}, {course.year}
+                  </p>
+
+                  {/* Teacher & Location */}
+                  <div className="text-[11px] text-[#887367] flex items-center justify-between pt-1 border-t border-[#f0e4dc]">
+                    <span>Teacher: {course.teacher} • {course.location || 'Dungeshwari Hall'}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#887367] group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
-
-                {/* Course Title */}
-                <h4 className="font-serif text-lg text-[#231a15] group-hover:text-[#8c3c0b] transition-colors">
-                  {course.title}
-                </h4>
-
-                {/* Dates */}
-                <p className="text-xs text-[#554339]">
-                  {course.fromDate} - {course.toDate}, {course.year}
-                </p>
-
-                {/* Teacher & Location */}
-                <div className="text-[11px] text-[#887367] flex items-center justify-between pt-1 border-t border-[#f0e4dc]">
-                  <span>Teacher: {course.teacher} • {course.location || 'Dungeshwari Hall'}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-[#887367] group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 3. Add Batch Modal */}

@@ -18,7 +18,7 @@ import {
   Save
 } from 'lucide-react';
 import { Course } from '../../types';
-import { updateCourse, deleteCourse, UpdateCoursePayload } from '../../services/api';
+import { updateCourse, deleteCourse, UpdateCoursePayload, normalizeDateToYmd } from '../../services/api';
 
 interface CourseBatchDetailViewProps {
   course: Course;
@@ -42,9 +42,13 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEdits, setIsSavingEdits] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
+
   const [editTitle, setEditTitle] = useState(currentCourse.title || '10-Day Meditation Retreat');
-  const [editStartDate, setEditStartDate] = useState(currentCourse.rawStartDate || '');
-  const [editEndDate, setEditEndDate] = useState(currentCourse.rawEndDate || '');
+  const [editStartDate, setEditStartDate] = useState(normalizeDateToYmd(currentCourse.rawStartDate) || '');
+  const [editEndDate, setEditEndDate] = useState(normalizeDateToYmd(currentCourse.rawEndDate) || '');
   const [editTeacher, setEditTeacher] = useState(currentCourse.teacher || '');
   const [editLocation, setEditLocation] = useState(currentCourse.location || 'Dungeshwari Hall');
   const [editLanguage, setEditLanguage] = useState(currentCourse.language || 'Hindi / English');
@@ -54,14 +58,15 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
 
   const resetEditForm = (c: Course = currentCourse) => {
     setEditTitle(c.title || '10-Day Meditation Retreat');
-    setEditStartDate(c.rawStartDate || '');
-    setEditEndDate(c.rawEndDate || '');
+    setEditStartDate(normalizeDateToYmd(c.rawStartDate) || '');
+    setEditEndDate(normalizeDateToYmd(c.rawEndDate) || '');
     setEditTeacher(c.teacher || '');
     setEditLocation(c.location || 'Dungeshwari Hall');
     setEditLanguage(c.language || 'Hindi / English');
     setEditTotalSeats(c.totalSeats || 30);
     setEditAvailableSeats(c.availableSeats);
     setEditDescription(c.description || '');
+    setSaveErrorMessage(null);
   };
 
   React.useEffect(() => {
@@ -99,6 +104,8 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
 
   const handleSaveEdits = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSavingEdits(true);
+    setSaveErrorMessage(null);
     try {
       let fromDateStr = currentCourse.fromDate;
       let toDateStr = currentCourse.toDate;
@@ -145,8 +152,12 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
       setCurrentCourse(updated);
       onUpdateCourse(updated);
       setIsEditing(false);
+      setSaveSuccessMessage('Course schedule and details updated successfully!');
+      setTimeout(() => setSaveSuccessMessage(null), 5000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save course changes.');
+      setSaveErrorMessage(err instanceof Error ? err.message : 'Failed to save course changes.');
+    } finally {
+      setIsSavingEdits(false);
     }
   };
 
@@ -164,6 +175,21 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in text-[#231a15]">
+      {/* Save Success Alert Banner */}
+      {saveSuccessMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium rounded-2xl flex items-center justify-between shadow-xs animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{saveSuccessMessage}</span>
+          </div>
+          <button
+            onClick={() => setSaveSuccessMessage(null)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold px-2 py-1 rounded cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       {/* 1. Top Navigation & Quick Actions Bar */}
       <div className="bg-white rounded-2xl border border-[#dbc1b4]/50 shadow-xs p-5 sm:p-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -434,6 +460,12 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
             </div>
 
             <form onSubmit={handleSaveEdits} className="space-y-3">
+              {saveErrorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{saveErrorMessage}</span>
+                </div>
+              )}
               <div>
                 <label className="font-semibold block mb-1">Course Title</label>
                 <input
@@ -548,9 +580,13 @@ export const CourseBatchDetailView: React.FC<CourseBatchDetailViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#8c3c0b] text-white text-xs font-semibold shadow-xs"
+                  disabled={isSavingEdits}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#8c3c0b] hover:bg-[#703100] disabled:opacity-60 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                 >
-                  Save Changes
+                  {isSavingEdits && (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  <span>{isSavingEdits ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>

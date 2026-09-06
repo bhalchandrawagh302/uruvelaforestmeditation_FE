@@ -27,24 +27,64 @@ export interface ApiCourse {
   description?: string;
 }
 
+export function normalizeDateToYmd(val: any): string {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (trimmed.includes('T')) return trimmed.split('T')[0];
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    const year = val.getFullYear();
+    const month = String(val.getMonth() + 1).padStart(2, '0');
+    const day = String(val.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return '';
+}
+
 /** Maps a raw backend course record to the frontend Course type. */
 export function mapApiCourseToCourse(raw: any): Course {
+  const rawStart = raw.raw_start_date || raw.rawStartDate || raw.start_date || raw.startDate || '';
+  const rawEnd = raw.raw_end_date || raw.rawEndDate || raw.end_date || raw.endDate || '';
+  const normalizedStart = normalizeDateToYmd(rawStart);
+  const normalizedEnd = normalizeDateToYmd(rawEnd);
+
+  let fromDate = raw.from_date_str || raw.fromDate || '';
+  if (!fromDate && normalizedStart) {
+    const s = new Date(normalizedStart + 'T00:00:00');
+    fromDate = s.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+  }
+
+  let toDate = raw.to_date_str || raw.toDate || '';
+  if (!toDate && normalizedEnd) {
+    const e = new Date(normalizedEnd + 'T00:00:00');
+    toDate = e.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+  }
+
   return {
-    id: raw._id || raw.id,
+    id: String(raw._id || raw.id),
     title: raw.title || '10-Day Meditation Retreat',
     batchNumber: raw.batch_number || raw.batchNumber,
-    year: String(raw.year),
-    fromDate: raw.from_date_str,
-    toDate: raw.to_date_str,
-    rawStartDate: raw.raw_start_date,
-    rawEndDate: raw.raw_end_date,
-    status: raw.status,
-    teacher: raw.teacher,
-    language: raw.language,
-    availableSeats: raw.available_seats,
-    totalSeats: raw.total_seats,
-    location: raw.location,
-    description: raw.description,
+    year: String(raw.year || (normalizedStart ? new Date(normalizedStart + 'T00:00:00').getFullYear() : 2026)),
+    fromDate,
+    toDate,
+    rawStartDate: normalizedStart,
+    rawEndDate: normalizedEnd,
+    status: raw.status || 'open',
+    teacher: raw.teacher || '',
+    language: raw.language || 'Hindi / English',
+    availableSeats: raw.available_seats ?? raw.availableSeats ?? 30,
+    totalSeats: raw.total_seats ?? raw.totalSeats ?? 30,
+    location: raw.location || 'Main Dungeshwari Dhamma Hall',
+    description: raw.description || '',
   };
 }
 
@@ -54,7 +94,7 @@ export function mapApiCourseToCourse(raw: any): Course {
  */
 export async function fetchCourses(year?: number): Promise<Course[]> {
   const params = year ? `?year=${year}` : '';
-  const response = await fetch(`${API_URL}/courses${params}`, {
+  const response = await fetch(`${API_V1_URL}/courses${params}`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
   });
@@ -69,7 +109,7 @@ export async function fetchCourses(year?: number): Promise<Course[]> {
   }
 
   const data: ApiCourse[] = await response.json();
-  return data.map(mapApiCourseToCourse);
+  return Array.isArray(data) ? data.map(mapApiCourseToCourse) : [];
 }
 
 export interface ImageUploadResponse {
