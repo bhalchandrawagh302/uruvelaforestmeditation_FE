@@ -39,10 +39,19 @@ export function App() {
   );
 
   const getScreenFromLocation = (): ScreenType => {
-    // Support legacy /dashboard pathname as well
+    // 1. Pathname matches dashboard
     if (window.location.pathname.includes('dashboard')) return 'dashboard';
-    const hash = window.location.hash.replace('#', '').trim();
-    return (HASH_TO_SCREEN[hash] as ScreenType) || 'home';
+
+    // 2. Hash routing: check hash
+    const rawHash = window.location.hash.replace(/^#\/?/, '').trim();
+    if (!rawHash) return 'home';
+
+    // Matches dashboard, dashboard?tab=..., or admin-login
+    if (rawHash.startsWith('dashboard') || rawHash.startsWith('admin/')) return 'dashboard';
+    if (rawHash === 'admin-login') return 'admin-login';
+
+    const baseHash = rawHash.split('?')[0].split('/')[0];
+    return (HASH_TO_SCREEN[baseHash] as ScreenType) || 'home';
   };
 
   // ── State ────────────────────────────────────────────────────────────────
@@ -118,8 +127,27 @@ export function App() {
   useEffect(() => {
     const hash = SCREEN_TO_HASH[currentScreen];
     try {
-      if (currentScreen === 'dashboard' || currentScreen === 'admin-login') {
-        window.history.pushState(null, '', `/${currentScreen === 'dashboard' ? 'dashboard' : '#admin-login'}`);
+      if (currentScreen === 'dashboard') {
+        const isDashboardPath = window.location.pathname.includes('dashboard');
+        if (isDashboardPath) {
+          // Preserve existing query params (?tab=...) and hash if already on /dashboard
+          const target = `/dashboard${window.location.search || ''}${window.location.hash || ''}`;
+          if (window.location.pathname !== '/dashboard') {
+            window.history.pushState(null, '', target);
+          }
+        } else {
+          // Hash-based routing: retain any ?tab= parameter or restore saved tab
+          const currentHash = window.location.hash;
+          if (!currentHash.includes('dashboard')) {
+            const savedTab = localStorage.getItem('admin_active_tab');
+            const targetHash = savedTab && savedTab !== 'overview'
+              ? `#dashboard?tab=${savedTab}`
+              : '#dashboard';
+            window.history.pushState(null, '', `/${targetHash}`);
+          }
+        }
+      } else if (currentScreen === 'admin-login') {
+        window.history.pushState(null, '', '/#admin-login');
       } else {
         window.history.pushState(null, '', hash ? `#${hash}` : '/');
       }
@@ -165,6 +193,7 @@ export function App() {
   };
 
   const handleAdminLogout = async () => {
+    localStorage.removeItem('admin_active_tab');
     await logoutAdmin();
     setAdminProfile(null);
     setIsAdminLoggedIn(false);

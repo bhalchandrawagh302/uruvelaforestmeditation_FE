@@ -63,15 +63,37 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const validTabs: AdminTab[] = ['overview', 'registrations', 'batches', 'dana', 'donations', 'settings'];
 
   const getInitialTab = (): AdminTab => {
-    const hash = window.location.hash.replace('#', '').trim().toLowerCase();
-    if (validTabs.includes(hash as AdminTab)) {
-      return hash as AdminTab;
-    }
-
+    // 1. Check URL query params: ?tab=dana or ?tab=registrations
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab')?.toLowerCase();
     if (tabParam && validTabs.includes(tabParam as AdminTab)) {
       return tabParam as AdminTab;
+    }
+
+    // 2. Check hash query params: e.g. #dashboard?tab=dana or #tab=dana
+    const rawHash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+    if (rawHash) {
+      if (rawHash.includes('tab=')) {
+        const queryStr = rawHash.includes('?') ? rawHash.split('?')[1] : rawHash;
+        const hashParams = new URLSearchParams(queryStr);
+        const hashTab = hashParams.get('tab')?.toLowerCase();
+        if (hashTab && validTabs.includes(hashTab as AdminTab)) {
+          return hashTab as AdminTab;
+        }
+      }
+
+      // Check if hash matches a tab directly: e.g. #dana or #registrations or dashboard/dana
+      const parts = rawHash.split('/');
+      const lastPart = parts[parts.length - 1].split('?')[0];
+      if (validTabs.includes(lastPart as AdminTab)) {
+        return lastPart as AdminTab;
+      }
+    }
+
+    // 3. Check localStorage (persistent across browser refresh)
+    const savedTab = localStorage.getItem('admin_active_tab')?.toLowerCase();
+    if (savedTab && validTabs.includes(savedTab as AdminTab)) {
+      return savedTab as AdminTab;
     }
 
     return 'overview';
@@ -83,24 +105,34 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setActiveTab(tab);
     localStorage.setItem('admin_active_tab', tab);
     try {
-      const url = new URL(window.location.href);
-      url.hash = tab === 'overview' ? '' : tab;
-      window.history.replaceState(null, '', url.toString());
+      if (window.location.pathname.includes('dashboard')) {
+        const url = new URL(window.location.href);
+        if (tab === 'overview') {
+          url.searchParams.delete('tab');
+        } else {
+          url.searchParams.set('tab', tab);
+        }
+        url.hash = '';
+        window.history.replaceState(null, '', url.toString());
+      } else {
+        const targetHash = tab === 'overview' ? '#dashboard' : `#dashboard?tab=${tab}`;
+        window.history.replaceState(null, '', `/${targetHash}`);
+      }
     } catch (_) {}
   };
 
-  // Sync tab on browser back/forward and hash changes
+  // Sync tab on browser back/forward and hash/popstate changes
   React.useEffect(() => {
-    const onHashChange = () => {
-      const hash = window.location.hash.replace('#', '').trim().toLowerCase();
-      if (validTabs.includes(hash as AdminTab)) {
-        setActiveTab(hash as AdminTab);
-      } else if (!hash) {
-        setActiveTab('overview');
-      }
+    const handleLocationChange = () => {
+      const currentTab = getInitialTab();
+      setActiveTab(currentTab);
     };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('popstate', handleLocationChange);
+    };
   }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -410,7 +442,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           )}
 
           <button
-            onClick={onLogout}
+            onClick={() => {
+              localStorage.removeItem('admin_active_tab');
+              onLogout();
+            }}
             className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-left text-xs font-medium text-red-700 hover:bg-red-50 transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
