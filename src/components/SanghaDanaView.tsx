@@ -84,6 +84,8 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
   const [bookingModalSlot, setBookingModalSlot] = useState<DanaMealSlot | null>(null);
   const [bookingMealType, setBookingMealType] = useState<'breakfast' | 'lunch' | 'both'>('breakfast');
   const [donorName, setDonorName] = useState('');
+  const [donorPhone, setDonorPhone] = useState('');
+  const [donorEmail, setDonorEmail] = useState('');
   const [dedicationNote, setDedicationNote] = useState('');
   const [expectedGuests, setExpectedGuests] = useState('');
   const [bookingSuccessToast, setBookingSuccessToast] = useState<string | null>(null);
@@ -237,6 +239,8 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
     if (bfUnavailable && luUnavailable) return;
 
     setBookingModalSlot(slot);
+    setDonorPhone('');
+    setDonorEmail('');
     setExpectedGuests('');
     if (meal) {
       setBookingMealType(meal);
@@ -251,12 +255,14 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bookingModalSlot || !donorName.trim()) return;
+    if (!bookingModalSlot || !donorName.trim() || !donorPhone.trim()) return;
 
     const targetDateStr = bookingModalSlot.dateStr;
     const isBf = bookingMealType === 'breakfast' || bookingMealType === 'both';
     const isLu = bookingMealType === 'lunch' || bookingMealType === 'both';
     const parsedGuests = expectedGuests.trim() ? parseInt(expectedGuests, 10) || undefined : undefined;
+    const cleanPhone = donorPhone.trim();
+    const cleanEmail = donorEmail.trim() || undefined;
 
     // Set slot to PENDING in the overrides map
     setBookingOverrides((prev) => {
@@ -270,6 +276,8 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
           lunchPending: isLu ? true : existing.lunchPending,
           lunchDonor: isLu ? donorName : existing.lunchDonor,
           pendingDonor: donorName,
+          phone: cleanPhone,
+          email: cleanEmail,
           expectedGuests: parsedGuests,
         },
       };
@@ -298,6 +306,8 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       dateDisplay,
       meal: mealLabel,
       donor: donorName,
+      phone: cleanPhone,
+      email: cleanEmail,
       occasion: dedicationNote.trim() || 'Merit offering for Sangha',
       expectedGuests: parsedGuests,
       status: 'pending',
@@ -312,6 +322,8 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
     setBookingModalSlot(null);
     setDonorName('');
+    setDonorPhone('');
+    setDonorEmail('');
     setDedicationNote('');
     setExpectedGuests('');
   };
@@ -641,7 +653,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
       {/* Booking Modal */}
       {bookingModalSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-[#fff8f5] border border-[#dbc1b4] rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+          <div className="bg-[#fff8f5] border border-[#dbc1b4] rounded-2xl max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setBookingModalSlot(null)}
               className="absolute top-4 right-4 p-2 text-[#554339] hover:text-[#703100] rounded-full hover:bg-[#f7e5dc]"
@@ -772,6 +784,33 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g., +91 98765 43210"
+                  value={donorPhone}
+                  onChange={(e) => setDonorPhone(e.target.value)}
+                  className="form-input w-full text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g., donor@example.com"
+                  value={donorEmail}
+                  onChange={(e) => setDonorEmail(e.target.value)}
+                  className="form-input w-full text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
                   Occasion or Dedication (Optional)
                 </label>
                 <input
@@ -785,7 +824,7 @@ export const SanghaDanaView: React.FC<SanghaDanaViewProps> = ({ language }) => {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#554339] mb-1">
-                  Expected Guests (If Arriving, Optional)
+                  Expected Guests Arriving (Optional)
                 </label>
                 <input
                   type="number"
