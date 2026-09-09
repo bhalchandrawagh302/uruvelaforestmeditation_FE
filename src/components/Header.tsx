@@ -23,14 +23,14 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#fff8f5]/95 backdrop-blur-md border-b border-[#dbc1b4]/40 transition-all duration-300">
-      <div className="max-w-[1120px] mx-auto px-4 md:px-6 h-20 flex items-center">
+      <div className="max-w-[1120px] mx-auto px-3 sm:px-4 md:px-6 h-20 flex items-center justify-between gap-2">
         {/* Left: Hamburger & Brand Name with Logo */}
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 min-w-0 flex-1">
           <button
             id="nav-menu-btn"
             onClick={onToggleMenu}
             aria-label="Open Navigation Menu"
-            className="p-2 -ml-2 rounded-full text-[#703100] hover:bg-[#f7e5dc] active:scale-95 transition-all duration-200"
+            className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-full text-[#703100] hover:bg-[#f7e5dc] active:scale-95 transition-all duration-200 shrink-0"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -39,18 +39,18 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="nav-brand-btn"
             onClick={() => onNavigate('home')}
-            className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none"
+            className="group flex items-center gap-2 sm:gap-3 text-left focus:outline-none min-w-0"
             aria-label={`${t.siteTitle} Home`}
           >
             <div className="relative shrink-0 flex items-center justify-center">
-              <MahabodhiLogo className="w-11 h-11 sm:w-13 sm:h-13 transition-transform duration-300 group-hover:scale-105 filter drop-shadow-xs" />
+              <MahabodhiLogo className="w-10 h-10 sm:w-12 sm:h-12 md:w-13 md:h-13 transition-transform duration-300 group-hover:scale-105 filter drop-shadow-xs" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-[#703100] group-hover:text-[#944403] transition-colors leading-tight">
+            <div className="flex flex-col min-w-0 justify-center">
+              <span className="font-serif text-[13px] leading-[1.2] sm:text-base md:text-lg lg:text-xl font-bold tracking-tight text-[#703100] group-hover:text-[#944403] transition-colors line-clamp-2 sm:line-clamp-1">
                 {t.siteTitle}
               </span>
               {t.siteSubtitle && (
-                <span className="text-[10px] sm:text-[11px] text-[#887367] tracking-wider font-medium hidden xs:block">
+                <span className="text-[10px] sm:text-[11px] text-[#887367] tracking-wider font-medium hidden md:block truncate">
                   {t.siteSubtitle}
                 </span>
               )}
@@ -58,10 +58,9 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-
         {/* Right: Language Switcher */}
-        <div className="flex items-center ml-auto pr-2 md:pr-16">
-          <div className="inline-flex items-center rounded-full bg-[#fceae2] p-1 border border-[#dbc1b4]/50">
+        <div className="flex items-center shrink-0 ml-1 md:pr-16">
+          <div className="inline-flex items-center rounded-full bg-[#fceae2] p-0.5 sm:p-1 border border-[#dbc1b4]/50">
             <button
               id="lang-en-btn"
               onClick={() => onLanguageChange('en')}

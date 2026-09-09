@@ -145,7 +145,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ language, onNavigate }) =>
               <div className="bg-white/80 p-4 rounded-xl border border-[#dbc1b4]/40 space-y-1.5 text-xs text-[#231a15]">
                 <div className="flex justify-between">
                   <span className="text-[#554339]">Primary Spiritual Guide:</span>
-                  <span className="font-semibold text-[#703100]">Venerable Sujato Bhikkhu</span>
+                  <span className="font-semibold text-[#703100]">Ven. Bhikkhu Sandamuni Mahathero</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#554339]">Tradition:</span>
