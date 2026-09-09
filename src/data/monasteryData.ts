@@ -193,12 +193,12 @@ export const TRANSLATIONS = {
     homeCardSupportTitle: 'Support the Sangha',
     homeCardSupportDesc: 'Offer Dana to support the monastics and the upkeep of the forest sanctuary.',
     homeCardSupportLink: 'OFFER DANA',
-    homeCardCourseTitle: '10-Day Vipassana Course',
+    homeCardCourseTitle: '10-Day Vipassana Retreats',
     homeCardCourseDesc: 'An intensive residential course in the tradition of Sayagyi U Ba Khin.',
     homeCardCourseLink: 'LEARN MORE',
 
     // Courses screen
-    coursesTitle: '10-Day Vipassana Courses',
+    coursesTitle: '10-Day Vipassana Retreats',
     coursesDesc: 'A dedicated period of silence and meditation. Courses are offered strictly on a donation basis to ensure the teachings remain accessible to all who seek them.',
     shareWhatsApp: 'Share via WhatsApp',
     thYear: 'Year',
@@ -211,7 +211,7 @@ export const TRANSLATIONS = {
     statusCancelled: 'Cancelled',
 
     // Registration screen
-    regTitle: '10-Day Vipassana Course Registration',
+    regTitle: '10-Day Vipassana Retreats Registration',
     regSubtitle: 'Please complete this form mindfully. The information provided will help us prepare for your stay at Uruvela Forest Vihara.',
     profilePhoto: 'Candidate Profile Photo (Selfie)',
     uploadPhotoPrompt: 'Upload a clear front-facing selfie or passport-style photo',
