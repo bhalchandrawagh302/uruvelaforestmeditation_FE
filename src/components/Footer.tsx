@@ -180,11 +180,11 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigate }) => {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center gap-3 text-sm text-[#231a15]">
                     <MapPin className="w-4 h-4 text-[#b35c1e] shrink-0" />
-                    <span>Uruvela Forest Vihara, Dungeshwari, Bodhgaya, Bihar, India</span>
+                    <span>Uruvela Forest Meditation Centre, Dungeshwari, Larpur, 823003, Gaya, Bihar, India</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-[#231a15]">
                     <Phone className="w-4 h-4 text-[#b35c1e] shrink-0" />
-                    <span>+91 94312 88421 / +91 80023 11904</span>
+                    <span>+91 9623603288 / +91 7666673639</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-[#231a15]">
                     <Mail className="w-4 h-4 text-[#b35c1e] shrink-0" />
@@ -192,7 +192,7 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigate }) => {
                   </div>
                   <div className="flex items-center gap-3 text-sm text-[#231a15]">
                     <Clock className="w-4 h-4 text-[#b35c1e] shrink-0" />
-                    <span>Office Hours: 08:30 AM – 11:30 AM & 02:00 PM – 05:00 PM IST</span>
+                    <span>Office Hours: 08:30 AM – 12:00 AM & 02:00 PM – 05:00 PM IST</span>
                   </div>
                 </div>
               </div>

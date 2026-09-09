@@ -65,8 +65,9 @@ export const VisitUsView: React.FC<VisitUsViewProps> = ({ language, onNavigate }
           <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-white/95 backdrop-blur-sm rounded-xl p-4 sm:p-5 shadow-md border border-[#dbc1b4]/40 max-w-[220px] sm:max-w-xs">
             <h3 className="font-serif text-lg text-[#703100] mb-1">Location</h3>
             <p className="text-xs text-[#554339] leading-relaxed mb-3">
-              108 Bodhi Tree Lane,<br />
-              Silent Valley, Near The Great River
+              Uruvela Forest Meditation Centre,<br />
+              Dungeshwari, Larpur, 823003,<br />
+              Gaya, Bihar, India
             </p>
             <a
               href="https://maps.google.com/?q=Uruvela+Forest+Meditation+Vihara"
@@ -172,7 +173,7 @@ export const VisitUsView: React.FC<VisitUsViewProps> = ({ language, onNavigate }
             <Phone className="w-5 h-5 text-[#b35c1e] shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold tracking-widest text-[#887367] uppercase mb-1">Phone</p>
-              <p className="text-sm text-[#231a15] font-semibold">+91 98765 43210</p>
+              <p className="text-sm text-[#231a15] font-semibold">+91 7666673639</p>
               <p className="text-xs text-[#554339] mt-1">Mon–Sat, 9am–12pm only</p>
             </div>
           </div>
@@ -182,7 +183,7 @@ export const VisitUsView: React.FC<VisitUsViewProps> = ({ language, onNavigate }
             <div>
               <p className="text-xs font-bold tracking-widest text-[#887367] uppercase mb-1">Email</p>
               <p className="text-sm text-[#231a15] font-semibold break-all">info@uruvela.org</p>
-              <p className="text-xs text-[#554339] mt-1">Replies within 2–3 days</p>
+              <p className="text-xs text-[#554339] mt-1">Replies within 24–48 hours</p>
             </div>
           </div>
         </div>

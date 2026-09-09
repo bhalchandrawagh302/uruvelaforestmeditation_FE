@@ -25,7 +25,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ language, onNavigate }) => {
         {/* Atmospheric Forest Buddha Background Image with Soft Sunlight Vignette */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://imgs.search.brave.com/xXXqkKU7DTrSNDby358js57JJO_wm7_TeSpkpm68CJ0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9kMzR2/bTNqNGg3Zjk3ei5j/bG91ZGZyb250Lm5l/dC9vcHRpbWl6ZWQv/M1gvYy83L2M3ODZm/ZWZiZTdjYjBmNWQ3/ZjY1ZGUyMThhMjVm/N2RmZGFjZmVlZWZf/Ml82NjZ4NTAwLmpw/ZWc"
+            src="https://pub-6bfb483a215042428990ce0cbc87fc13.r2.dev/courses/9ac09891e6cd4f7dab726b70aa3d31c7.png"
             alt="Buddha meditating in misty forest sanctuary"
             className="w-full h-full object-cover object-top brightness-[0.82] contrast-[0.95]"
             referrerPolicy="no-referrer"
@@ -39,16 +39,16 @@ export const HomeView: React.FC<HomeViewProps> = ({ language, onNavigate }) => {
         {/* Hero Content Container */}
         <div className="relative z-10 max-w-[880px] mx-auto text-center flex flex-col items-center pt-10 pb-6">
           {/* Pill Badge */}
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#fff8f5]/90 backdrop-blur-md border border-[#dbc1b4]/70 shadow-xs mb-5 animate-fade-in">
+          {/* <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#fff8f5]/90 backdrop-blur-md border border-[#dbc1b4]/70 shadow-xs mb-5 animate-fade-in">
             <span className="text-[11px] sm:text-xs font-semibold tracking-widest text-[#703100] uppercase font-sans">
               {t.homePill}
             </span>
-          </div>
+          </div> */}
 
           {/* Main Display Headline */}
-          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl text-[#1f1610] font-normal tracking-tight leading-[1.15] mb-5 drop-shadow-xs max-w-2xl">
+          {/* <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl text-[#1f1610] font-normal tracking-tight leading-[1.15] mb-5 drop-shadow-xs max-w-2xl">
             {t.homeHeroTitle}
-          </h1>
+          </h1> */}
 
           {/* Subtitle */}
           <p className="text-[#3b2d24] text-sm sm:text-base md:text-lg max-w-xl sm:max-w-2xl mx-auto leading-relaxed font-normal mb-8 text-balance">

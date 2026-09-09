@@ -33,8 +33,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
   const handleShare = async () => {
     const shareData = {
-      title: 'Mahabodhi Meditation Centre | Uruvela Forest Vihara',
-      text: 'Discover peace within at Mahabodhi Meditation Centre (Uruvela Forest Vihara). Silent retreats, Dhamma talks, and Sangha Dana.',
+      title: 'URUVELA FOREST MEDITATION VIHARA | Uruvela Forest Vihara',
+      text: 'Discover peace within at URUVELA FOREST MEDITATION VIHARA (Uruvela Forest Vihara). Silent retreats, Dhamma talks, and Sangha Dana.',
       url: window.location.origin || window.location.href,
     };
 
@@ -75,10 +75,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
       <div className="relative w-full max-w-sm bg-[#fff8f5] text-[#231a15] h-full shadow-2xl flex flex-col z-10 border-r border-[#dbc1b4]/60 overflow-y-auto">
         {/* Top bar */}
         <div className="p-5 border-b border-[#dbc1b4]/40 flex items-center justify-between bg-[#fff1eb]">
-          <div className="flex items-center gap-3">
-            <MahabodhiLogo className="w-12 h-12 shrink-0 drop-shadow-xs" />
-            <div>
-              <span className="font-serif text-lg font-bold text-[#703100] leading-tight block">
+          <div className="flex items-center gap-3 min-w-0 pr-2">
+            <MahabodhiLogo className="w-11 h-11 shrink-0 drop-shadow-xs" />
+            <div className="min-w-0">
+              <span className="font-serif text-base sm:text-lg font-bold text-[#703100] leading-snug block">
                 {t.siteTitle}
               </span>
               <p className="text-[11px] text-[#705d53] font-medium mt-0.5">
@@ -99,11 +99,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         <div className="flex-1 px-4 py-6 space-y-1">
           <button
             onClick={() => handleLinkClick('home')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'home'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'home'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <Compass className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -115,11 +114,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
           <button
             onClick={() => handleLinkClick('about')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'about'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'about'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <Compass className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -132,11 +130,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
           <button
             onClick={() => handleLinkClick('visit')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'visit'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'visit'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <Compass className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -148,11 +145,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
           <button
             onClick={() => handleLinkClick('dana')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'dana'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'dana'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <Heart className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -164,11 +160,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
           <button
             onClick={() => handleLinkClick('talks')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'talks'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'talks'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <Music className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -180,11 +175,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
           <button
             onClick={() => handleLinkClick('library')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'library'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'library'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <BookOpen className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -196,11 +190,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
           <button
             onClick={() => handleLinkClick('support')}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${
-              currentScreen === 'support'
+            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-left font-medium transition-all ${currentScreen === 'support'
                 ? 'bg-[#fceae2] text-[#703100] font-semibold'
                 : 'text-[#554339] hover:bg-[#f7e5dc] hover:text-[#703100]'
-            }`}
+              }`}
           >
             <Shield className="w-5 h-5 text-[#b35c1e]" />
             <div className="flex-1">
@@ -251,25 +244,22 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             <div className="inline-flex rounded-full bg-[#fceae2] p-1 border border-[#dbc1b4]/40">
               <button
                 onClick={() => onLanguageChange('en')}
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                  language === 'en' ? 'bg-[#703100] text-white' : 'text-[#703100]'
-                }`}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${language === 'en' ? 'bg-[#703100] text-white' : 'text-[#703100]'
+                  }`}
               >
                 EN
               </button>
               <button
                 onClick={() => onLanguageChange('hi')}
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-devanagari ${
-                  language === 'hi' ? 'bg-[#703100] text-white' : 'text-[#703100]'
-                }`}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-devanagari ${language === 'hi' ? 'bg-[#703100] text-white' : 'text-[#703100]'
+                  }`}
               >
                 हिं
               </button>
               <button
                 onClick={() => onLanguageChange('mr')}
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-devanagari ${
-                  language === 'mr' ? 'bg-[#703100] text-white' : 'text-[#703100]'
-                }`}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-devanagari ${language === 'mr' ? 'bg-[#703100] text-white' : 'text-[#703100]'
+                  }`}
               >
                 मरा
               </button>

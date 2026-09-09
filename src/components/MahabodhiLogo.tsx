@@ -5,9 +5,9 @@ interface MahabodhiLogoProps {
   size?: number;
 }
 
-export const MahabodhiLogo: React.FC<MahabodhiLogoProps> = ({ 
-  className = "w-10 h-10", 
-  size 
+export const MahabodhiLogo: React.FC<MahabodhiLogoProps> = ({
+  className = "w-10 h-10",
+  size
 }) => {
   const style = size ? { width: size, height: size } : undefined;
 
@@ -18,7 +18,7 @@ export const MahabodhiLogo: React.FC<MahabodhiLogoProps> = ({
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={style}
-      aria-label="Mahabodhi Meditation Centre Emblem"
+      aria-label="URUVELA FOREST MEDITATION VIHARA Emblem"
     >
       <defs>
         {/* Curved text path for top Burmese text */}
@@ -69,7 +69,7 @@ export const MahabodhiLogo: React.FC<MahabodhiLogoProps> = ({
           strokeWidth="1.8"
           strokeDasharray="3,3"
         />
-        
+
         {/* Left individual leaves */}
         {/* Leaf 1 (Top left) */}
         <path d="M 125 100 C 110 85 85 95 95 115 C 105 130 130 120 125 100 Z" />
@@ -198,7 +198,7 @@ export const MahabodhiLogo: React.FC<MahabodhiLogoProps> = ({
         </g>
       </g>
 
-      {/* Inner Circular Arc: MAHABODHI MEDITATION CENTRE */}
+      {/* Inner Circular Arc: URUVELA FOREST MEDITATION VIHARA */}
       <text
         fill="#8a0c0c"
         fontWeight="900"
@@ -211,7 +211,7 @@ export const MahabodhiLogo: React.FC<MahabodhiLogoProps> = ({
           startOffset="50%"
           textAnchor="middle"
         >
-          MAHABODHI MEDITATION CENTRE
+          URUVELA FOREST MEDITATION VIHARA
         </textPath>
       </text>
 

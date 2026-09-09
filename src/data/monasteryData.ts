@@ -161,7 +161,7 @@ export const DHAMMA_TALKS_LIST: DhammaTalk[] = [
 // Multilingual UI strings for EN, HI, MR
 export const TRANSLATIONS = {
   en: {
-    siteTitle: 'Mahabodhi Meditation Centre',
+    siteTitle: 'URUVELA FOREST MEDITATION VIHARA',
     siteSubtitle: 'Sīla • Samādhi • Paññā',
     navDhammaTalks: 'Dhamma Talks',
     navRetreats: 'Retreats',
@@ -177,7 +177,7 @@ export const TRANSLATIONS = {
     navVisitUs: 'Visit Us',
     navAccessibility: 'Accessibility',
     copyright: '© 2026 Sati Monastery. Digital Zen by Design.',
-    
+
     // Home screen
     homePill: 'URUVELA FOREST MEDITATION VIHARA',
     homeHeroTitle: 'A Path to Stillness',
@@ -196,7 +196,7 @@ export const TRANSLATIONS = {
     homeCardCourseTitle: '10-Day Vipassana Course',
     homeCardCourseDesc: 'An intensive residential course in the tradition of Sayagyi U Ba Khin.',
     homeCardCourseLink: 'LEARN MORE',
-    
+
     // Courses screen
     coursesTitle: '10-Day Vipassana Courses',
     coursesDesc: 'A dedicated period of silence and meditation. Courses are offered strictly on a donation basis to ensure the teachings remain accessible to all who seek them.',
@@ -209,7 +209,7 @@ export const TRANSLATIONS = {
     btnUpcoming: 'Upcoming',
     btnNotOpen: 'Registration Not Yet Open',
     statusCancelled: 'Cancelled',
-    
+
     // Registration screen
     regTitle: '10-Day Vipassana Course Registration',
     regSubtitle: 'Please complete this form mindfully. The information provided will help us prepare for your stay at Uruvela Forest Vihara.',
@@ -248,7 +248,7 @@ export const TRANSLATIONS = {
     illnessLabel: 'Any Illness (Physical or Mental)',
     illnessPlaceholder: "Please describe any ongoing health conditions, medications, or dietary restrictions. If none, write 'None'.",
     btnSubmitRegistration: 'SUBMIT REGISTRATION',
-    
+
     // Sangha Dana screen
     danaHeroTitle: 'SANGHA DANA',
     danaHeroSubtitle: 'You and your family can offer a meal dana.',
@@ -263,7 +263,7 @@ export const TRANSLATIONS = {
     breakfast: 'Breakfast',
     lunch: 'Lunch',
     breakfastAndLunch: 'Breakfast & Lunch',
-    
+
     // About screen
     aboutMainHeading: 'A Refuge for Mindful Practice in the Heart of Nature.',
     aboutSubHeading: 'प्रकृति के हृदय में ध्यान का एक आश्रय।',
@@ -290,7 +290,7 @@ export const TRANSLATIONS = {
     navVisitUs: 'आगमन',
     navAccessibility: 'सुलभता',
     copyright: '© २०२६ सती मॉनेस्ट्री। डिजिटल ज़ेन डिज़ाइन।',
-    
+
     // Home screen
     homePill: 'उरुवेला वन विपश्यना विहार',
     homeHeroTitle: 'स्थिरता का एक मार्ग',
@@ -309,7 +309,7 @@ export const TRANSLATIONS = {
     homeCardCourseTitle: '१० दिवसीय विपश्यना शिविर',
     homeCardCourseDesc: 'सयागी उ बा खिन की परंपरा में एक गहन आवासीय विपश्यना शिविर।',
     homeCardCourseLink: 'अधिक जानें',
-    
+
     // Courses screen
     coursesTitle: '१० दिवसीय विपश्यना शिविर',
     coursesDesc: 'मौन और गहन ध्यान का एक समर्पित काल। यह शिक्षाएं सभी साधकों के लिए सुलभ रहें, इसलिए शिविर पूर्णतः स्वेच्छा दान पर आधारित हैं।',
@@ -322,7 +322,7 @@ export const TRANSLATIONS = {
     btnUpcoming: 'आगामी',
     btnNotOpen: 'पंजीकरण अभी खुला नहीं है',
     statusCancelled: 'रद्द',
-    
+
     // Registration screen
     regTitle: '१० दिवसीय विपश्यना शिविर पंजीकरण',
     regSubtitle: 'कृपया इस प्रपत्र को सचेतन भाव से भरें। दी गई जानकारी से उरुवेला वन विहार में आपके आवास की समुचित व्यवस्था में सहायता मिलेगी।',
@@ -361,7 +361,7 @@ export const TRANSLATIONS = {
     illnessLabel: 'कोई शारीरिक या मानसिक व्याधि',
     illnessPlaceholder: "कृपया किसी भी स्वास्थ्य स्थिति, औषधि या आहार प्रतिबंध का उल्लेख करें। यदि कुछ नहीं है, तो 'कोई नहीं' लिखें।",
     btnSubmitRegistration: 'पंजीकरण जमा करें',
-    
+
     // Sangha Dana screen
     danaHeroTitle: 'संघ दान',
     danaHeroSubtitle: 'आप और आपका परिवार भोजन दान अर्पित कर सकते हैं।',
@@ -376,7 +376,7 @@ export const TRANSLATIONS = {
     breakfast: 'प्रातराश (नाश्ता)',
     lunch: 'मध्याह्न भोजन',
     breakfastAndLunch: 'प्रातराश और मध्याह्न भोजन',
-    
+
     // About screen
     aboutMainHeading: 'प्रकृति के हृदय में ध्यान का एक आश्रय।',
     aboutSubHeading: 'A Refuge for Mindful Practice in the Heart of Nature.',
@@ -403,7 +403,7 @@ export const TRANSLATIONS = {
     navVisitUs: 'भेट द्या',
     navAccessibility: 'सुलभता',
     copyright: '© २०२६ सती मॉनेस्ट्री। डिजिटल झेन डिझाईन.',
-    
+
     // Home screen
     homePill: 'उरुवेला वन ध्यान विहार',
     homeHeroTitle: 'शांततेचा एक मार्ग',
@@ -422,7 +422,7 @@ export const TRANSLATIONS = {
     homeCardCourseTitle: '१० दिवसांचे विपश्यना शिबीर',
     homeCardCourseDesc: 'सयागी उ बा खिन यांच्या परंपरेतील एक सखोल निवासी विपश्यना शिबीर.',
     homeCardCourseLink: 'अधिक माहिती',
-    
+
     // Courses screen
     coursesTitle: '१० दिवसांचे विपश्यना शिबीर',
     coursesDesc: 'मौन आणि ध्यानाचा एक समर्पित काळ. धम्माची शिकवण सर्वांपर्यंत पोहोचावी म्हणून हे शिबीर पूर्णपणे ऐच्छिक दानावर आधारित आहे.',
@@ -435,7 +435,7 @@ export const TRANSLATIONS = {
     btnUpcoming: 'लवकरच',
     btnNotOpen: 'नोंदणी अजून सुरू झालेली नाही',
     statusCancelled: 'रद्द',
-    
+
     // Registration screen
     regTitle: '१० दिवसांच्या विपश्यना शिबिराची नोंदणी',
     regSubtitle: 'कृपया हा अर्ज सजगतेने भरा. दिलेल्या माहितीमुळे उरुवेला वन विहारमध्ये आपल्या वास्तव्याची योग्य सोय करता येईल.',
@@ -474,7 +474,7 @@ export const TRANSLATIONS = {
     illnessLabel: 'कोणताही शारीरिक किंवा मानसिक आजार',
     illnessPlaceholder: "कृपया सध्याची प्रकृती, औषधे किंवा आहारासंबंधी माहिती लिहा. काही नसल्यास 'काही नाही' असे लिहा.",
     btnSubmitRegistration: 'नोंदणी सादर करा',
-    
+
     // Sangha Dana screen
     danaHeroTitle: 'संघ दान',
     danaHeroSubtitle: 'तुम्ही आणि तुमचे कुटुंब भोजन दान अर्पण करू शकता.',
@@ -489,7 +489,7 @@ export const TRANSLATIONS = {
     breakfast: 'सकाळचा नाश्ता',
     lunch: 'दुपारचे भोजन',
     breakfastAndLunch: 'नाश्ता आणि दुपारचे भोजन',
-    
+
     // About screen
     aboutMainHeading: 'निसर्गाच्या कुशीत साधनेचे एक शांत आश्रयस्थान.',
     aboutSubHeading: 'A Refuge for Mindful Practice in the Heart of Nature.',
