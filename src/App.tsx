@@ -17,6 +17,7 @@ import { VisitUsView } from './components/VisitUsView';
 import { ZenAudioPlayer } from './components/ZenAudioPlayer';
 import { AdminLoginView } from './components/admin/AdminLoginView';
 import { AdminDashboardView } from './components/admin/AdminDashboardView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export function App() {
   // ── Hash-based routing helpers ───────────────────────────────────────────
@@ -248,11 +249,16 @@ export function App() {
     }
 
     return (
-      <AdminDashboardView
-        onLogout={handleAdminLogout}
-        onReturnToSite={() => handleNavigate('home')}
-        adminProfile={adminProfile}
-      />
+      <ErrorBoundary
+        fallbackTitle="Stewardship Dashboard Encountered an Issue"
+        onReset={() => handleNavigate('home')}
+      >
+        <AdminDashboardView
+          onLogout={handleAdminLogout}
+          onReturnToSite={() => handleNavigate('home')}
+          adminProfile={adminProfile}
+        />
+      </ErrorBoundary>
     );
   }
 

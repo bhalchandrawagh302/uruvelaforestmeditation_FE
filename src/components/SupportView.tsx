@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Sparkles, Coffee, ShieldCheck, Check, Copy } from 'lucide-react';
+import { Heart, Sparkles, Coffee, ShieldCheck, Check, Copy, MessageCircle } from 'lucide-react';
 import { Language, ScreenType } from '../types';
 import { TRANSLATIONS } from '../data/monasteryData';
 
@@ -23,6 +23,11 @@ export const SupportView: React.FC<SupportViewProps> = ({ language, onNavigate }
     navigator.clipboard.writeText('1234567890');
     setCopiedAccount(true);
     setTimeout(() => setCopiedAccount(false), 2500);
+  };
+
+  const handleContactAccounts = () => {
+    const message = `Vandami Bhante 🙏\n\nI need assistance regarding donation support / bank transfer for Uruvela Forest Vihara. Could the accounts team please assist me?\n\nThank you!`;
+    window.open(`https://api.whatsapp.com/send?phone=919623603288&text=${encodeURIComponent(message)}`, '_blank');
   };
 
   return (
@@ -149,6 +154,23 @@ export const SupportView: React.FC<SupportViewProps> = ({ language, onNavigate }
           <p className="text-[11px] text-[#887367] italic">
             Receipts for all voluntary donations are sent via email within 48 hours.
           </p>
+
+          {/* WhatsApp Donation Support Section */}
+          <div className="pt-3 border-t border-[#dbc1b4]/40 flex flex-col items-center justify-center gap-2">
+            <p className="text-xs text-[#554339]">
+              Need help regarding donation support or remittances?
+            </p>
+            <button
+              id="contact-accounts-whatsapp-btn"
+              type="button"
+              onClick={handleContactAccounts}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#25D366] hover:bg-[#20ba59] active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+              title="Contact Accounts on WhatsApp"
+            >
+              <MessageCircle className="w-4 h-4 fill-white" />
+              <span>Contact Accounts</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

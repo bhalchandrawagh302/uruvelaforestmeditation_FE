@@ -91,6 +91,9 @@ export interface DanaMealSlot {
   lunchBooked: boolean;
   lunchDonor?: string;
   lunchPending?: boolean;
+  gilanpachhayaBooked?: boolean;
+  gilanpachhayaDonor?: string;
+  gilanpachhayaPending?: boolean;
   pendingDonor?: string;
   isEmpty?: boolean;
   expectedGuests?: number;

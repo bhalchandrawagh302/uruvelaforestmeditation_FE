@@ -16,9 +16,17 @@ import {
   Coffee, 
   Clock, 
   AlertCircle,
-  Save
+  Save,
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 import { SanghaDanaDaySchedule, SanghaDanaMealSlot } from '../../data/adminDanaData';
+import { 
+  confirmDanaMealSlot, 
+  rejectDanaMealSlot, 
+  resetDanaMealSlot,
+  computeDayStatus
+} from '../../services/danaBookingService';
 
 interface SanghaDanaDetailViewProps {
   schedule: SanghaDanaDaySchedule;
@@ -33,12 +41,15 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
 }) => {
   const [showBreakfastPhone, setShowBreakfastPhone] = useState(false);
   const [showLunchPhone, setShowLunchPhone] = useState(false);
+  const [showGilanpachhayaPhone, setShowGilanpachhayaPhone] = useState(false);
   const [newNote, setNewNote] = useState('');
   
   // Modals state
   const [editingMeal, setEditingMeal] = useState<SanghaDanaMealSlot | null>(null);
-  const [allocatingMealType, setAllocatingMealType] = useState<'Breakfast' | 'Lunch' | null>(null);
-  const [cancellingMealType, setCancellingMealType] = useState<'Breakfast' | 'Lunch' | null>(null);
+  const [allocatingMealType, setAllocatingMealType] = useState<'Breakfast' | 'Lunch' | 'Gilanpachhaya' | null>(null);
+  const [cancellingMealType, setCancellingMealType] = useState<'Breakfast' | 'Lunch' | 'Gilanpachhaya' | null>(null);
+  const [rejectingMealType, setRejectingMealType] = useState<'Breakfast' | 'Lunch' | 'Gilanpachhaya' | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
 
   // Form State for Allocate / Edit
   const [formSponsorName, setFormSponsorName] = useState('');
@@ -47,10 +58,33 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
   const [formDedication, setFormDedication] = useState('');
   const [formAttendees, setFormAttendees] = useState(4);
 
+  const breakfastSlot: SanghaDanaMealSlot = schedule.breakfast || {
+    mealType: 'Breakfast',
+    time: '07:00 AM - 08:30 AM',
+    isAllocated: false,
+    status: 'Available',
+  };
+
+  const lunchSlot: SanghaDanaMealSlot = schedule.lunch || {
+    mealType: 'Lunch',
+    time: '11:00 AM - 12:30 PM',
+    isAllocated: false,
+    status: 'Available',
+  };
+
+  const gilanpachhayaSlot: SanghaDanaMealSlot = schedule.gilanpachhaya || {
+    mealType: 'Gilanpachhaya',
+    time: '05:00 PM - 06:00 PM',
+    isAllocated: false,
+    status: 'Available',
+  };
+
+  const safeAdminNotes = Array.isArray(schedule.adminNotes) ? schedule.adminNotes : [];
+  const safeAuditTrail = Array.isArray(schedule.auditTrail) ? schedule.auditTrail : [];
+
   const formatMaskedPhone = (phone?: string, showFull = false) => {
     if (!phone) return '—';
     if (showFull) return phone;
-    // e.g. +94 77 891 4321 -> +94 77 *** 4321
     const parts = phone.split(' ');
     if (parts.length >= 3) {
       return `${parts[0]} ${parts[1]} *** ${parts[parts.length - 1]}`;
@@ -76,8 +110,8 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
 
     const updated: SanghaDanaDaySchedule = {
       ...schedule,
-      adminNotes: [newNoteObj, ...schedule.adminNotes],
-      auditTrail: [newAudit, ...schedule.auditTrail],
+      adminNotes: [newNoteObj, ...safeAdminNotes],
+      auditTrail: [newAudit, ...safeAuditTrail],
     };
 
     onUpdateSchedule(updated);
@@ -97,7 +131,6 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
     e.preventDefault();
     if (!editingMeal) return;
 
-    const isBreakfast = editingMeal.mealType === 'Breakfast';
     const updatedSlot: SanghaDanaMealSlot = {
       ...editingMeal,
       sponsorName: formSponsorName,
@@ -116,8 +149,9 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
 
     const updated: SanghaDanaDaySchedule = {
       ...schedule,
-      breakfast: isBreakfast ? updatedSlot : schedule.breakfast,
-      lunch: !isBreakfast ? updatedSlot : schedule.lunch,
+      breakfast: editingMeal.mealType === 'Breakfast' ? updatedSlot : schedule.breakfast,
+      lunch: editingMeal.mealType === 'Lunch' ? updatedSlot : schedule.lunch,
+      gilanpachhaya: editingMeal.mealType === 'Gilanpachhaya' ? updatedSlot : gilanpachhayaSlot,
       auditTrail: [updatedAudit, ...schedule.auditTrail],
     };
 
@@ -125,7 +159,7 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
     setEditingMeal(null);
   };
 
-  const handleOpenAllocate = (mealType: 'Breakfast' | 'Lunch') => {
+  const handleOpenAllocate = (mealType: 'Breakfast' | 'Lunch' | 'Gilanpachhaya') => {
     setAllocatingMealType(mealType);
     setFormSponsorName('');
     setFormPhone('');
@@ -138,12 +172,17 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
     e.preventDefault();
     if (!allocatingMealType) return;
 
-    const isBreakfast = allocatingMealType === 'Breakfast';
+    const slotTime = allocatingMealType === 'Breakfast' 
+      ? '07:00 AM - 08:30 AM' 
+      : allocatingMealType === 'Lunch' 
+      ? '11:00 AM - 12:30 PM' 
+      : '05:00 PM - 06:00 PM';
+
     const now = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     const newSlot: SanghaDanaMealSlot = {
       mealType: allocatingMealType,
-      time: isBreakfast ? '07:00 AM - 08:30 AM' : '11:00 AM - 12:30 PM',
+      time: slotTime,
       isAllocated: true,
       status: 'Confirmed',
       sponsorName: formSponsorName || 'Generous Donor Family',
@@ -154,12 +193,15 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
       attendeesCount: formAttendees,
     };
 
-    const otherSlot = isBreakfast ? schedule.lunch : schedule.breakfast;
-    const newStatus = otherSlot.isAllocated ? 'Allocated' : 'Partially Allocated';
+    const nextBreakfast = allocatingMealType === 'Breakfast' ? newSlot : schedule.breakfast;
+    const nextLunch = allocatingMealType === 'Lunch' ? newSlot : schedule.lunch;
+    const nextGilan = allocatingMealType === 'Gilanpachhaya' ? newSlot : gilanpachhayaSlot;
+
+    const newStatus = computeDayStatus(nextBreakfast, nextLunch, nextGilan);
 
     const newAudit = {
       id: `audit-${Date.now()}`,
-      action: `${allocatingMealType} Manually Allocated to ${formSponsorName}`,
+      action: `${allocatingMealType} Manually Allocated to ${formSponsorName || 'Donor'}`,
       actor: 'Admin User',
       timestamp: now,
     };
@@ -167,8 +209,9 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
     const updated: SanghaDanaDaySchedule = {
       ...schedule,
       status: newStatus,
-      breakfast: isBreakfast ? newSlot : schedule.breakfast,
-      lunch: !isBreakfast ? newSlot : schedule.lunch,
+      breakfast: nextBreakfast,
+      lunch: nextLunch,
+      gilanpachhaya: nextGilan,
       auditTrail: [newAudit, ...schedule.auditTrail],
     };
 
@@ -179,16 +222,24 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
   const handleConfirmCancel = () => {
     if (!cancellingMealType) return;
 
-    const isBreakfast = cancellingMealType === 'Breakfast';
+    const slotTime = cancellingMealType === 'Breakfast' 
+      ? '07:00 AM - 08:30 AM' 
+      : cancellingMealType === 'Lunch' 
+      ? '11:00 AM - 12:30 PM' 
+      : '05:00 PM - 06:00 PM';
+
     const emptySlot: SanghaDanaMealSlot = {
       mealType: cancellingMealType,
-      time: isBreakfast ? '07:00 AM - 08:30 AM' : '11:00 AM - 12:30 PM',
+      time: slotTime,
       isAllocated: false,
       status: 'Available',
     };
 
-    const otherSlot = isBreakfast ? schedule.lunch : schedule.breakfast;
-    const newStatus = otherSlot.isAllocated ? 'Partially Allocated' : 'Open';
+    const nextBreakfast = cancellingMealType === 'Breakfast' ? emptySlot : schedule.breakfast;
+    const nextLunch = cancellingMealType === 'Lunch' ? emptySlot : schedule.lunch;
+    const nextGilan = cancellingMealType === 'Gilanpachhaya' ? emptySlot : gilanpachhayaSlot;
+
+    const newStatus = computeDayStatus(nextBreakfast, nextLunch, nextGilan);
 
     const newAudit = {
       id: `audit-${Date.now()}`,
@@ -200,8 +251,9 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
     const updated: SanghaDanaDaySchedule = {
       ...schedule,
       status: newStatus,
-      breakfast: isBreakfast ? emptySlot : schedule.breakfast,
-      lunch: !isBreakfast ? emptySlot : schedule.lunch,
+      breakfast: nextBreakfast,
+      lunch: nextLunch,
+      gilanpachhaya: nextGilan,
       auditTrail: [newAudit, ...schedule.auditTrail],
     };
 
@@ -209,8 +261,323 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
     setCancellingMealType(null);
   };
 
+  /** Confirm pending dana booking */
+  const handleConfirmMealSlot = (mealType: 'Breakfast' | 'Lunch' | 'Gilanpachhaya') => {
+    const updated = confirmDanaMealSlot(schedule.id, mealType, 'Admin User');
+    if (updated) {
+      onUpdateSchedule(updated);
+    } else {
+      const now = new Date().toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const confirmSlot = (slot: SanghaDanaMealSlot): SanghaDanaMealSlot => ({
+        ...slot,
+        status: 'Confirmed',
+        isAllocated: true,
+      });
+      const newBf = mealType === 'Breakfast' ? confirmSlot(schedule.breakfast) : schedule.breakfast;
+      const newLu = mealType === 'Lunch' ? confirmSlot(schedule.lunch) : schedule.lunch;
+      const newTea = mealType === 'Gilanpachhaya' ? confirmSlot(gilanpachhayaSlot) : gilanpachhayaSlot;
+      const updatedSchedule: SanghaDanaDaySchedule = {
+        ...schedule,
+        breakfast: newBf,
+        lunch: newLu,
+        gilanpachhaya: newTea,
+        status: computeDayStatus(newBf, newLu, newTea),
+        auditTrail: [
+          {
+            id: `audit-${Date.now()}`,
+            action: `${mealType} Dana Confirmed & Allocated (Payment Verified)`,
+            actor: 'Admin User',
+            timestamp: now,
+          },
+          ...schedule.auditTrail,
+        ],
+      };
+      onUpdateSchedule(updatedSchedule);
+    }
+  };
+
+  /** Open reject modal */
+  const handleOpenRejectModal = (mealType: 'Breakfast' | 'Lunch' | 'Gilanpachhaya') => {
+    setRejectingMealType(mealType);
+    setRejectionReasonInput('');
+  };
+
+  /** Confirm rejection */
+  const handleConfirmReject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingMealType) return;
+    const updated = rejectDanaMealSlot(schedule.id, rejectingMealType, rejectionReasonInput.trim(), 'Admin User');
+    if (updated) {
+      onUpdateSchedule(updated);
+    } else {
+      const now = new Date().toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const rejectSlot = (slot: SanghaDanaMealSlot): SanghaDanaMealSlot => ({
+        ...slot,
+        status: 'Rejected',
+        isAllocated: false,
+        rejectionReason: rejectionReasonInput.trim() || 'Booking rejected by monastery administration',
+      });
+      const newBf = rejectingMealType === 'Breakfast' ? rejectSlot(schedule.breakfast) : schedule.breakfast;
+      const newLu = rejectingMealType === 'Lunch' ? rejectSlot(schedule.lunch) : schedule.lunch;
+      const newTea = rejectingMealType === 'Gilanpachhaya' ? rejectSlot(gilanpachhayaSlot) : gilanpachhayaSlot;
+      const updatedSchedule: SanghaDanaDaySchedule = {
+        ...schedule,
+        breakfast: newBf,
+        lunch: newLu,
+        gilanpachhaya: newTea,
+        status: computeDayStatus(newBf, newLu, newTea),
+        auditTrail: [
+          {
+            id: `audit-${Date.now()}`,
+            action: `${rejectingMealType} Dana Booking Rejected${rejectionReasonInput.trim() ? ` (Reason: ${rejectionReasonInput.trim()})` : ''}`,
+            actor: 'Admin User',
+            timestamp: now,
+          },
+          ...schedule.auditTrail,
+        ],
+      };
+      onUpdateSchedule(updatedSchedule);
+    }
+    setRejectingMealType(null);
+  };
+
+  /** Re-open a rejected slot for other devotees */
+  const handleResetSlotToAvailable = (mealType: 'Breakfast' | 'Lunch' | 'Gilanpachhaya') => {
+    const updated = resetDanaMealSlot(schedule.id, mealType, 'Admin User');
+    if (updated) {
+      onUpdateSchedule(updated);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
+  };
+
+  /** Helper to render each meal slot card */
+  const renderMealCard = (
+    mealType: 'Breakfast' | 'Lunch' | 'Gilanpachhaya',
+    title: string,
+    timeDesc: string,
+    icon: React.ReactNode,
+    slot: SanghaDanaMealSlot,
+    showPhone: boolean,
+    setShowPhone: (val: boolean) => void
+  ) => {
+    const isPending = slot.status === 'Pending';
+    const isConfirmed = slot.status === 'Confirmed';
+    const isRejected = slot.status === 'Rejected';
+    const hasSponsor = slot.isAllocated || isPending || isRejected;
+
+    return (
+      <div className="bg-white rounded-2xl border border-[#dbc1b4]/60 shadow-xs overflow-hidden p-6 sm:p-7 space-y-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-[#f8ece4] border border-[#d8c8bd]/60 flex items-center justify-center text-[#8c3c0b]">
+              {icon}
+            </div>
+            <div>
+              <h2 className="font-serif text-xl font-bold text-[#231a15] tracking-tight">
+                {title}
+              </h2>
+              <span className="text-xs text-[#705d53] font-medium">
+                {slot.time || timeDesc}
+              </span>
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          {isConfirmed && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]">
+              <Check className="w-3.5 h-3.5" />
+              <span>Confirmed & Allocated</span>
+            </span>
+          )}
+          {isPending && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fff8e1] text-[#b45309] border border-[#fde68a] animate-pulse">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Pending Confirmation</span>
+            </span>
+          )}
+          {isRejected && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca]">
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Rejected</span>
+            </span>
+          )}
+          {!hasSponsor && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fff3e0] text-[#b35c1e] border border-[#ffe0b2]">
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>Available</span>
+            </span>
+          )}
+        </div>
+
+        {/* Meal Body */}
+        {hasSponsor ? (
+          <div className="space-y-5">
+            {/* Pending Notice Banner */}
+            {isPending && (
+              <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-[#92400e]">
+                <Clock className="w-4 h-4 text-[#d97706] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-[#78350f]">Awaiting WhatsApp Payment Screenshot Verification</p>
+                  <p className="text-[11px] text-[#92400e] leading-relaxed">
+                    The devotee submitted this booking on the calendar. Once you verify their transaction screenshot, click <strong>Confirm Dana</strong> to allocate this slot, or <strong>Reject</strong> if payment is not received.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Rejected Notice Banner */}
+            {isRejected && (
+              <div className="bg-[#fef2f2] border border-[#fecaca] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-[#991b1b]">
+                <XCircle className="w-4 h-4 text-[#dc2626] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-[#7f1d1d]">Offering Request Rejected</p>
+                  <p className="text-[11px] text-[#b91c1c]">
+                    {slot.rejectionReason || 'This booking was rejected. Click below to re-open the slot for devotees.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Sponsor & Contact Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[#887367] font-medium block mb-0.5">Sponsor</span>
+                <span className="font-serif text-base text-[#231a15] font-semibold">
+                  {slot.sponsorName || '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[#887367] font-medium block mb-0.5">Contact</span>
+                <div className="flex items-center gap-2 text-sm text-[#231a15] font-medium">
+                  <span>{formatMaskedPhone(slot.contactPhone, showPhone)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhone(!showPhone)}
+                    className="text-[#887367] hover:text-[#703100] transition-colors p-1"
+                    title={showPhone ? "Mask number" : "Reveal full number"}
+                  >
+                    {showPhone ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Dedication Message Box */}
+            {slot.dedication && (
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-[#554339]">Dedication / Message</span>
+                <div className="bg-[#fbf4ee] border border-[#edd5c8] rounded-xl p-4 text-xs sm:text-sm italic text-[#554339] leading-relaxed">
+                  "{slot.dedication}"
+                </div>
+              </div>
+            )}
+
+            {/* Booked On & Attendees */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#887367] pt-1">
+              <div>
+                <span>Booked On </span>
+                <span className="text-[#554339] font-medium">{slot.bookedOn || 'Recently'}</span>
+              </div>
+              {slot.attendeesCount && (
+                <div>
+                  <span>Expected Guests: </span>
+                  <span className="text-[#554339] font-medium">{slot.attendeesCount} persons</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-3 flex flex-wrap items-center gap-3 border-t border-[#f3e7df]">
+              {/* 1. When PENDING (Not confirmed or rejected already): Show Confirm & Reject buttons */}
+              {isPending && (
+                <>
+                  <button
+                    onClick={() => handleConfirmMealSlot(mealType)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2e7d32] hover:bg-[#1b5e20] active:bg-[#144717] text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Confirm Dana (Allocate)</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenRejectModal(mealType)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#f5c2c7] hover:bg-[#fff5f5] text-red-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Reject Booking</span>
+                  </button>
+                </>
+              )}
+
+              {/* 2. When CONFIRMED: Show Cancel Booking (Confirm/Reject are hidden) */}
+              {isConfirmed && (
+                <button
+                  onClick={() => setCancellingMealType(mealType)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#f5c2c7] hover:bg-[#fff5f5] text-red-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Cancel Booking</span>
+                </button>
+              )}
+
+              {/* 3. When REJECTED: Show Re-open Slot */}
+              {isRejected && (
+                <button
+                  onClick={() => handleResetSlotToAvailable(mealType)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#c4a99b] hover:bg-[#f6eee8] text-[#703100] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Re-open Slot for Devotees</span>
+                </button>
+              )}
+
+              {/* Edit Details is available for any active record (except rejected) */}
+              {!isRejected && (
+                <button
+                  onClick={() => handleOpenEdit(slot)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#d6c5ba] hover:bg-[#faf4f0] text-[#703100] text-xs font-semibold rounded-xl transition-colors cursor-pointer ml-auto"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#8c3c0b]" />
+                  <span>Edit Details</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Empty Slot - Dashed Box */
+          <div className="border-2 border-dashed border-[#e6d7cf] rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-3 bg-[#fdfaf8]">
+            <div className="w-10 h-10 rounded-full bg-[#f6eee8] flex items-center justify-center text-[#8c3c0b]">
+              <Inbox className="w-5 h-5" />
+            </div>
+            <p className="text-xs text-[#705d53] font-medium max-w-sm">
+              No sponsor currently allocated for {title.toLowerCase()}.
+            </p>
+            <button
+              onClick={() => handleOpenAllocate(mealType)}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#8c3c0b] hover:bg-[#722f07] active:bg-[#5a2404] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Manually Allocate</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -226,10 +593,35 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#231a15] tracking-tight">
-              {schedule.dateStr}
-            </h1>
-            <p className="text-xs text-[#705d53] font-medium">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#231a15] tracking-tight">
+                {schedule.dateStr}
+              </h1>
+              {/* Day Status Badge */}
+              {schedule.status === 'Allocated' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]">
+                  <Check className="w-3 h-3" />
+                  <span>Allocated</span>
+                </span>
+              )}
+              {schedule.status === 'Partially Allocated' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#fff3e0] text-[#b35c1e] border border-[#ffe0b2]">
+                  <span>Partially Allocated</span>
+                </span>
+              )}
+              {schedule.status === 'Pending' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#fff8e1] text-[#b45309] border border-[#fde68a] animate-pulse">
+                  <Clock className="w-3 h-3" />
+                  <span>Pending Confirmation</span>
+                </span>
+              )}
+              {schedule.status === 'Open' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#f5efe9] text-[#705d53] border border-[#dccbc0]">
+                  <span>Open</span>
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-[#705d53] font-medium mt-0.5">
               Sangha Dana Schedule • {schedule.dayOfWeek}
             </p>
           </div>
@@ -249,244 +641,37 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
         {/* Left Column (Span 2): Meals Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* 1. Breakfast Dana Card */}
-          <div className="bg-white rounded-2xl border border-[#dbc1b4]/60 shadow-xs overflow-hidden p-6 sm:p-7 space-y-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-[#f8ece4] border border-[#d8c8bd]/60 flex items-center justify-center text-[#8c3c0b]">
-                  <Coffee className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-serif text-xl font-bold text-[#231a15] tracking-tight">
-                    Breakfast Dana
-                  </h2>
-                  <span className="text-xs text-[#705d53] font-medium">
-                    {schedule.breakfast.time}
-                  </span>
-                </div>
-              </div>
-
-              {schedule.breakfast.isAllocated ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Confirmed</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fff3e0] text-[#b35c1e] border border-[#ffe0b2]">
-                  <CalendarIcon className="w-3.5 h-3.5" />
-                  <span>Available</span>
-                </span>
-              )}
-            </div>
-
-            {/* Breakfast Body */}
-            {schedule.breakfast.isAllocated ? (
-              <div className="space-y-5">
-                {/* Sponsor & Contact Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-[#887367] font-medium block mb-0.5">Sponsor</span>
-                    <span className="font-serif text-base text-[#231a15] font-semibold">
-                      {schedule.breakfast.sponsorName}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#887367] font-medium block mb-0.5">Contact</span>
-                    <div className="flex items-center gap-2 text-sm text-[#231a15] font-medium">
-                      <span>{formatMaskedPhone(schedule.breakfast.contactPhone, showBreakfastPhone)}</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowBreakfastPhone(!showBreakfastPhone)}
-                        className="text-[#887367] hover:text-[#703100] transition-colors p-1"
-                        title={showBreakfastPhone ? "Mask number" : "Reveal full number"}
-                      >
-                        {showBreakfastPhone ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dedication Message Box */}
-                {schedule.breakfast.dedication && (
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-[#554339]">Dedication / Message</span>
-                    <div className="bg-[#fbf4ee] border border-[#edd5c8] rounded-xl p-4 text-xs sm:text-sm italic text-[#554339] leading-relaxed">
-                      "{schedule.breakfast.dedication}"
-                    </div>
-                  </div>
-                )}
-
-                {/* Booked On & Attendees */}
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#887367] pt-1">
-                  <div>
-                    <span>Booked On </span>
-                    <span className="text-[#554339] font-medium">{schedule.breakfast.bookedOn || 'Aug 15, 2026, 14:30'}</span>
-                  </div>
-                  {schedule.breakfast.attendeesCount && (
-                    <div>
-                      <span>Expected Guests: </span>
-                      <span className="text-[#554339] font-medium">{schedule.breakfast.attendeesCount} persons</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="pt-2 flex flex-wrap items-center gap-3 border-t border-[#f3e7df]">
-                  <button
-                    onClick={() => setCancellingMealType('Breakfast')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#f5c2c7] hover:bg-[#fff5f5] text-red-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span>Cancel Booking</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleOpenEdit(schedule.breakfast)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#d6c5ba] hover:bg-[#faf4f0] text-[#703100] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#8c3c0b]" />
-                    <span>Edit Details</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Empty Slot - Dashed Box */
-              <div className="border-2 border-dashed border-[#e6d7cf] rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-3 bg-[#fdfaf8]">
-                <div className="w-10 h-10 rounded-full bg-[#f6eee8] flex items-center justify-center text-[#8c3c0b]">
-                  <Inbox className="w-5 h-5" />
-                </div>
-                <p className="text-xs text-[#705d53] font-medium max-w-sm">
-                  No sponsor currently allocated for this meal.
-                </p>
-                <button
-                  onClick={() => handleOpenAllocate('Breakfast')}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#8c3c0b] hover:bg-[#722f07] active:bg-[#5a2404] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Manually Allocate</span>
-                </button>
-              </div>
-            )}
-          </div>
+          {renderMealCard(
+            'Breakfast',
+            'Breakfast Dana',
+            '07:00 AM - 08:30 AM',
+            <Coffee className="w-5 h-5" />,
+            breakfastSlot,
+            showBreakfastPhone,
+            setShowBreakfastPhone
+          )}
 
           {/* 2. Lunch Dana Card */}
-          <div className="bg-white rounded-2xl border border-[#dbc1b4]/60 shadow-xs overflow-hidden p-6 sm:p-7 space-y-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-[#f8ece4] border border-[#d8c8bd]/60 flex items-center justify-center text-[#8c3c0b]">
-                  <Utensils className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-serif text-xl font-bold text-[#231a15] tracking-tight">
-                    Lunch Dana
-                  </h2>
-                  <span className="text-xs text-[#705d53] font-medium">
-                    {schedule.lunch.time}
-                  </span>
-                </div>
-              </div>
+          {renderMealCard(
+            'Lunch',
+            'Lunch Dana',
+            '11:00 AM - 12:30 PM',
+            <Utensils className="w-5 h-5" />,
+            lunchSlot,
+            showLunchPhone,
+            setShowLunchPhone
+          )}
 
-              {schedule.lunch.isAllocated ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Confirmed</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fff3e0] text-[#b35c1e] border border-[#ffe0b2]">
-                  <CalendarIcon className="w-3.5 h-3.5" />
-                  <span>Available</span>
-                </span>
-              )}
-            </div>
-
-            {/* Lunch Body */}
-            {schedule.lunch.isAllocated ? (
-              <div className="space-y-5">
-                {/* Sponsor & Contact Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-[#887367] font-medium block mb-0.5">Sponsor</span>
-                    <span className="font-serif text-base text-[#231a15] font-semibold">
-                      {schedule.lunch.sponsorName}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#887367] font-medium block mb-0.5">Contact</span>
-                    <div className="flex items-center gap-2 text-sm text-[#231a15] font-medium">
-                      <span>{formatMaskedPhone(schedule.lunch.contactPhone, showLunchPhone)}</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowLunchPhone(!showLunchPhone)}
-                        className="text-[#887367] hover:text-[#703100] transition-colors p-1"
-                        title={showLunchPhone ? "Mask number" : "Reveal full number"}
-                      >
-                        {showLunchPhone ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dedication Message Box */}
-                {schedule.lunch.dedication && (
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-[#554339]">Dedication / Message</span>
-                    <div className="bg-[#fbf4ee] border border-[#edd5c8] rounded-xl p-4 text-xs sm:text-sm italic text-[#554339] leading-relaxed">
-                      "{schedule.lunch.dedication}"
-                    </div>
-                  </div>
-                )}
-
-                {/* Booked On & Attendees */}
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#887367] pt-1">
-                  <div>
-                    <span>Booked On </span>
-                    <span className="text-[#554339] font-medium">{schedule.lunch.bookedOn || 'Aug 15, 2026, 14:30'}</span>
-                  </div>
-                  {schedule.lunch.attendeesCount && (
-                    <div>
-                      <span>Expected Guests: </span>
-                      <span className="text-[#554339] font-medium">{schedule.lunch.attendeesCount} persons</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="pt-2 flex flex-wrap items-center gap-3 border-t border-[#f3e7df]">
-                  <button
-                    onClick={() => setCancellingMealType('Lunch')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#f5c2c7] hover:bg-[#fff5f5] text-red-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span>Cancel Booking</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleOpenEdit(schedule.lunch)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#d6c5ba] hover:bg-[#faf4f0] text-[#703100] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#8c3c0b]" />
-                    <span>Edit Details</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Empty Slot - Dashed Box */
-              <div className="border-2 border-dashed border-[#e6d7cf] rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-3 bg-[#fdfaf8]">
-                <div className="w-10 h-10 rounded-full bg-[#f6eee8] flex items-center justify-center text-[#8c3c0b]">
-                  <Inbox className="w-5 h-5" />
-                </div>
-                <p className="text-xs text-[#705d53] font-medium max-w-sm">
-                  No sponsor currently allocated for this meal.
-                </p>
-                <button
-                  onClick={() => handleOpenAllocate('Lunch')}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#8c3c0b] hover:bg-[#722f07] active:bg-[#5a2404] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Manually Allocate</span>
-                </button>
-              </div>
-            )}
-          </div>
+          {/* 3. Gilanpachhaya Dana Card */}
+          {renderMealCard(
+            'Gilanpachhaya',
+            'Gilanpachhaya Dana',
+            '05:00 PM - 06:00 PM (Evening Tea & Refreshments)',
+            <Sparkles className="w-5 h-5" />,
+            gilanpachhayaSlot,
+            showGilanpachhayaPhone,
+            setShowGilanpachhayaPhone
+          )}
         </div>
 
         {/* Right Column (Span 1): Admin Notes & Audit Trail */}
@@ -519,13 +704,13 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
             </div>
 
             {/* Previous Notes Section */}
-            {schedule.adminNotes.length > 0 && (
+            {safeAdminNotes.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-[#f3e7df]">
                 <span className="text-[11px] font-semibold text-[#705d53] uppercase tracking-wider block">
                   Previous Notes
                 </span>
                 <div className="space-y-2.5">
-                  {schedule.adminNotes.map((note) => (
+                  {safeAdminNotes.map((note) => (
                     <div 
                       key={note.id} 
                       className="bg-[#fbf4ee] border border-[#edd5c8] rounded-xl p-3.5 text-xs text-[#44352d] space-y-1.5"
@@ -550,7 +735,7 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
             </div>
 
             <div className="relative pl-5 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-[#eddcd2]">
-              {schedule.auditTrail.map((item, index) => {
+              {safeAuditTrail.map((item, index) => {
                 const isFirst = index === 0;
                 return (
                   <div key={item.id} className="relative text-xs space-y-0.5">
@@ -685,7 +870,7 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
                   Edit {editingMeal.mealType} Details
                 </h3>
                 <p className="text-xs text-[#705d53]">
-                  {schedule.dateStr}
+                  {schedule.dateStr} • {schedule.dayOfWeek}
                 </p>
               </div>
               <button
@@ -800,6 +985,69 @@ export const SanghaDanaDetailView: React.FC<SanghaDanaDetailViewProps> = ({
                 Confirm Cancellation
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Reject Booking Modal */}
+      {rejectingMealType && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-[#dbc1b4] shadow-2xl space-y-5 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-[#f3e7df] pb-3">
+              <div className="flex items-center gap-2 text-red-700">
+                <XCircle className="w-5 h-5" />
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#231a15]">
+                    Reject {rejectingMealType} Booking
+                  </h3>
+                  <p className="text-xs text-[#705d53]">
+                    {schedule.dateStr} • {schedule.dayOfWeek}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRejectingMealType(null)}
+                className="text-[#887367] hover:text-[#231a15] p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmReject} className="space-y-4 text-xs">
+              <div className="p-3.5 bg-[#fff5f5] border border-[#fed7d7] rounded-xl text-red-800 space-y-1">
+                <p className="font-semibold">Reject this offering request?</p>
+                <p className="text-[11px] text-red-700 leading-relaxed">
+                  This will mark the booking as Rejected. The devotee's request will not be allocated. You can re-open the slot for other devotees at any time.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-[#3b2e27]">Rejection Reason (Optional)</label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Payment screenshot not received / Incomplete details / Duplicate request..."
+                  value={rejectionReasonInput}
+                  onChange={(e) => setRejectionReasonInput(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-[#dccbc0] bg-[#fdfaf8] text-xs text-[#231a15] focus:outline-none focus:border-[#8c3c0b] focus:bg-white resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#f3e7df]">
+                <button
+                  type="button"
+                  onClick={() => setRejectingMealType(null)}
+                  className="px-4 py-2 rounded-xl text-[#705d53] hover:bg-[#f4ebe3] font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-red-700 hover:bg-red-800 active:bg-red-900 text-white font-semibold shadow-xs cursor-pointer"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

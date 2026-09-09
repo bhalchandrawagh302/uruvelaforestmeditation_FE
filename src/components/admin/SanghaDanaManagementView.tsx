@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { SanghaDanaDaySchedule } from '../../data/adminDanaData';
 import { SanghaDanaDetailView } from './SanghaDanaDetailView';
+import { DanaAmountManagementView } from './DanaAmountManagementView';
 
 interface SanghaDanaManagementViewProps {
   schedules: SanghaDanaDaySchedule[];
@@ -31,6 +32,7 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
   onAddNewBooking,
 }) => {
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<'schedule' | 'pricing'>('schedule');
 
   // Filters state
   const [dateRangeFilter, setDateRangeFilter] = useState<string>('all');
@@ -48,26 +50,44 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
 
   // Filter schedules
   const filteredSchedules = schedules.filter((sch) => {
+    if (!sch) return false;
+
     // Status filter
-    if (statusFilter !== 'all' && sch.status !== statusFilter) {
-      return false;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'Pending') {
+        const hasPending = 
+          sch.breakfast?.status === 'Pending' ||
+          sch.lunch?.status === 'Pending' ||
+          sch.gilanpachhaya?.status === 'Pending' ||
+          sch.status === 'Pending';
+        if (!hasPending) return false;
+      } else if (sch.status !== statusFilter) {
+        return false;
+      }
     }
 
     // Meal type filter
-    if (mealTypeFilter === 'breakfast' && !sch.breakfast.isAllocated) {
+    if (mealTypeFilter === 'breakfast' && !sch.breakfast?.isAllocated) {
       return false;
     }
-    if (mealTypeFilter === 'lunch' && !sch.lunch.isAllocated) {
+    if (mealTypeFilter === 'lunch' && !sch.lunch?.isAllocated) {
+      return false;
+    }
+    if (mealTypeFilter === 'gilanpachhaya' && !sch.gilanpachhaya?.isAllocated) {
+      return false;
+    }
+    if (mealTypeFilter === 'full-day' && !(sch.breakfast?.isAllocated && sch.lunch?.isAllocated && sch.gilanpachhaya?.isAllocated)) {
       return false;
     }
 
     // Sponsor search filter
     if (sponsorSearch.trim()) {
       const q = sponsorSearch.toLowerCase();
-      const bSponsor = sch.breakfast.sponsorName?.toLowerCase() || '';
-      const lSponsor = sch.lunch.sponsorName?.toLowerCase() || '';
-      const dateText = `${sch.dateStr} ${sch.dayOfWeek}`.toLowerCase();
-      if (!bSponsor.includes(q) && !lSponsor.includes(q) && !dateText.includes(q)) {
+      const bSponsor = sch.breakfast?.sponsorName?.toLowerCase() || '';
+      const lSponsor = sch.lunch?.sponsorName?.toLowerCase() || '';
+      const gSponsor = sch.gilanpachhaya?.sponsorName?.toLowerCase() || '';
+      const dateText = `${sch.dateStr || ''} ${sch.dayOfWeek || ''}`.toLowerCase();
+      if (!bSponsor.includes(q) && !lSponsor.includes(q) && !gSponsor.includes(q) && !dateText.includes(q)) {
         return false;
       }
     }
@@ -91,17 +111,48 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Title & Description */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#231a15] tracking-tight">
-            Sangha Schedule
-          </h1>
-          <p className="text-xs sm:text-sm text-[#705d53] mt-1 max-w-2xl">
-            Manage daily Dana offerings, track sponsor allocations, and ensure all meal requirements for the monastic community are met.
-          </p>
-        </div>
+      {/* Sub-Tab Navigation */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#dbc1b4]/60 pb-3">
+        <button
+          onClick={() => setSubTab('schedule')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            subTab === 'schedule'
+              ? 'bg-[#703100] text-white shadow-xs'
+              : 'bg-white text-[#554339] border border-[#dbc1b4]/60 hover:bg-[#fceae2]'
+          }`}
+        >
+          <CalendarDays className="w-4 h-4" />
+          <span>Offerings & Schedules</span>
+        </button>
+
+        <button
+          onClick={() => setSubTab('pricing')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            subTab === 'pricing'
+              ? 'bg-[#703100] text-white shadow-xs'
+              : 'bg-white text-[#554339] border border-[#dbc1b4]/60 hover:bg-[#fceae2]'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Dana Pricing & Amount Management</span>
+        </button>
       </div>
+
+      {subTab === 'pricing' ? (
+        <DanaAmountManagementView />
+      ) : (
+        <>
+          {/* Title & Description */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#231a15] tracking-tight">
+                Sangha Schedule
+              </h1>
+              <p className="text-xs sm:text-sm text-[#705d53] mt-1 max-w-2xl">
+                Manage daily Dana offerings, track sponsor allocations, and ensure all meal requirements for the monastic community are met.
+              </p>
+            </div>
+          </div>
 
       {/* Filter Bar Card */}
       <div className="bg-white rounded-2xl border border-[#dbc1b4]/60 shadow-xs p-5 sm:p-6">
@@ -141,6 +192,8 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
               <option value="all">All Meals</option>
               <option value="breakfast">Breakfast Dana</option>
               <option value="lunch">Lunch Dana</option>
+              <option value="gilanpachhaya">Gilanpachhaya (Evening Tea)</option>
+              <option value="full-day">Full Day Allocated</option>
             </select>
           </div>
 
@@ -157,6 +210,7 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
               <option value="all">All Statuses</option>
               <option value="Allocated">Allocated</option>
               <option value="Partially Allocated">Partially Allocated</option>
+              <option value="Pending">Pending Confirmation</option>
               <option value="Open">Open</option>
             </select>
           </div>
@@ -204,6 +258,7 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
                 <th className="py-3.5 px-6">Date</th>
                 <th className="py-3.5 px-5">Breakfast Sponsor</th>
                 <th className="py-3.5 px-5">Lunch Sponsor</th>
+                <th className="py-3.5 px-5">Gilanpachhaya Sponsor</th>
                 <th className="py-3.5 px-5">Status</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
               </tr>
@@ -229,9 +284,24 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
 
                       {/* Breakfast Sponsor */}
                       <td className="py-4 px-5 text-[#231a15]">
-                        {sch.breakfast.isAllocated ? (
+                        {sch.breakfast?.status === 'Pending' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-[#231a15]">{sch.breakfast?.sponsorName}</span>
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#fff8e1] text-[#b45309] border border-[#fde68a]">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>Pending</span>
+                            </span>
+                          </div>
+                        ) : sch.breakfast?.status === 'Rejected' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[#887367] line-through text-xs">{sch.breakfast?.sponsorName}</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#fee2e2] text-[#b91c1c]">
+                              Rejected
+                            </span>
+                          </div>
+                        ) : sch.breakfast?.isAllocated ? (
                           <div className="font-medium text-[#231a15]">
-                            {sch.breakfast.sponsorName}
+                            {sch.breakfast?.sponsorName}
                           </div>
                         ) : (
                           <span className="text-[#a6958b] text-base">—</span>
@@ -240,9 +310,50 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
 
                       {/* Lunch Sponsor */}
                       <td className="py-4 px-5 text-[#231a15]">
-                        {sch.lunch.isAllocated ? (
+                        {sch.lunch?.status === 'Pending' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-[#231a15]">{sch.lunch?.sponsorName}</span>
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#fff8e1] text-[#b45309] border border-[#fde68a]">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>Pending</span>
+                            </span>
+                          </div>
+                        ) : sch.lunch?.status === 'Rejected' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[#887367] line-through text-xs">{sch.lunch?.sponsorName}</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#fee2e2] text-[#b91c1c]">
+                              Rejected
+                            </span>
+                          </div>
+                        ) : sch.lunch?.isAllocated ? (
                           <div className="font-medium text-[#231a15]">
-                            {sch.lunch.sponsorName}
+                            {sch.lunch?.sponsorName}
+                          </div>
+                        ) : (
+                          <span className="text-[#a6958b] text-base">—</span>
+                        )}
+                      </td>
+
+                      {/* Gilanpachhaya Sponsor */}
+                      <td className="py-4 px-5 text-[#231a15]">
+                        {sch.gilanpachhaya?.status === 'Pending' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-[#231a15]">{sch.gilanpachhaya.sponsorName}</span>
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#fff8e1] text-[#b45309] border border-[#fde68a]">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>Pending</span>
+                            </span>
+                          </div>
+                        ) : sch.gilanpachhaya?.status === 'Rejected' ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[#887367] line-through text-xs">{sch.gilanpachhaya.sponsorName}</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#fee2e2] text-[#b91c1c]">
+                              Rejected
+                            </span>
+                          </div>
+                        ) : sch.gilanpachhaya?.isAllocated ? (
+                          <div className="font-medium text-[#231a15]">
+                            {sch.gilanpachhaya.sponsorName}
                           </div>
                         ) : (
                           <span className="text-[#a6958b] text-base">—</span>
@@ -261,6 +372,12 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fff3e0] text-[#b35c1e] border border-[#ffe0b2]">
                             <MinusCircle className="w-3.5 h-3.5" />
                             <span>Partially Allocated</span>
+                          </span>
+                        )}
+                        {sch.status === 'Pending' && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#fff8e1] text-[#b45309] border border-[#fde68a] animate-pulse">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Pending</span>
                           </span>
                         )}
                         {sch.status === 'Open' && (
@@ -289,7 +406,7 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-xs text-[#887367]">
+                  <td colSpan={6} className="py-10 text-center text-xs text-[#887367]">
                     No Sangha Dana entries match your filter criteria.
                   </td>
                 </tr>
@@ -319,6 +436,8 @@ export const SanghaDanaManagementView: React.FC<SanghaDanaManagementViewProps> =
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

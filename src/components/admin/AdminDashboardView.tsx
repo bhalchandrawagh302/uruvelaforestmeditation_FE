@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutGrid, 
   UserCheck, 
@@ -29,6 +29,7 @@ import {
   X
 } from 'lucide-react';
 import { INITIAL_DANA_SCHEDULES, SanghaDanaDaySchedule } from '../../data/adminDanaData';
+import { getDanaSchedules, saveDanaSchedules, DANA_SCHEDULES_UPDATED_EVENT } from '../../services/danaBookingService';
 import { SanghaDanaManagementView } from './SanghaDanaManagementView';
 import { CourseRegistrationManagementView } from './CourseRegistrationManagementView';
 import { CourseBatchesManagementView } from './CourseBatchesManagementView';
@@ -140,24 +141,34 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [totalRegistrationsCount, setTotalRegistrationsCount] = useState<number>(7);
 
-  // Dana Schedules State
-  const [danaSchedules, setDanaSchedules] = useState<SanghaDanaDaySchedule[]>(INITIAL_DANA_SCHEDULES);
-  
+  // Dana Schedules State from persistent reactive service
+  const [danaSchedules, setDanaSchedules] = useState<SanghaDanaDaySchedule[]>(() => getDanaSchedules());
+
+  useEffect(() => {
+    const handleSync = () => {
+      setDanaSchedules(getDanaSchedules());
+    };
+    window.addEventListener(DANA_SCHEDULES_UPDATED_EVENT, handleSync);
+    return () => window.removeEventListener(DANA_SCHEDULES_UPDATED_EVENT, handleSync);
+  }, []);
+
+  const handleUpdateDanaSchedule = (updatedSchedule: SanghaDanaDaySchedule) => {
+    setDanaSchedules(prev => {
+      const next = prev.map(item => item.id === updatedSchedule.id ? updatedSchedule : item);
+      saveDanaSchedules(next);
+      return next;
+    });
+  };
+
   // New Booking Modal State
   const [showNewBookingModal, setShowNewBookingModal] = useState(false);
   const [newBookingDate, setNewBookingDate] = useState('2026-10-25');
-  const [newBookingMealType, setNewBookingMealType] = useState<'Breakfast' | 'Lunch'>('Breakfast');
+  const [newBookingMealType, setNewBookingMealType] = useState<'Breakfast' | 'Lunch' | 'Gilanpachhaya' | 'Full Day'>('Breakfast');
   const [newBookingSponsor, setNewBookingSponsor] = useState('');
   const [newBookingPhone, setNewBookingPhone] = useState('');
   const [newBookingEmail, setNewBookingEmail] = useState('');
   const [newBookingDedication, setNewBookingDedication] = useState('');
   const [newBookingAttendees, setNewBookingAttendees] = useState(4);
-
-  const handleUpdateDanaSchedule = (updatedSchedule: SanghaDanaDaySchedule) => {
-    setDanaSchedules(prev => 
-      prev.map(item => item.id === updatedSchedule.id ? updatedSchedule : item)
-    );
-  };
 
   const handleCreateNewBooking = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,34 +180,75 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     const existingIndex = danaSchedules.findIndex(s => s.rawDate === newBookingDate);
     const now = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-    const newSlot = {
-      mealType: newBookingMealType,
-      time: newBookingMealType === 'Breakfast' ? '07:00 AM - 08:30 AM' : '11:00 AM - 12:30 PM',
+    const isBreakfast = newBookingMealType === 'Breakfast';
+    const isLunch = newBookingMealType === 'Lunch';
+    const isGilanpachhaya = newBookingMealType === 'Gilanpachhaya';
+    const isFullDay = newBookingMealType === 'Full Day';
+
+    const buildSlot = (type: 'Breakfast' | 'Lunch' | 'Gilanpachhaya') => ({
+      mealType: type,
+      time: type === 'Breakfast' 
+        ? '07:00 AM - 08:30 AM' 
+        : type === 'Lunch' 
+        ? '11:00 AM - 12:30 PM' 
+        : '05:00 PM - 06:00 PM',
       isAllocated: true,
       status: 'Confirmed' as const,
       sponsorName: newBookingSponsor || 'Anonymous Sponsor',
       contactPhone: newBookingPhone || '+94 77 123 4567',
       email: newBookingEmail || 'donor@dhamma.org',
-      dedication: newBookingDedication || 'Merits dedicated to peace and monastic wellbeing.',
+      dedication: newBookingDedication || (isFullDay ? 'Full Day Sangha Dana dedicated to the wellbeing of the monastics.' : 'Merits dedicated to peace and monastic wellbeing.'),
       bookedOn: now,
       attendeesCount: newBookingAttendees,
-    };
+    });
+
+    const defaultEmptySlot = (type: 'Breakfast' | 'Lunch' | 'Gilanpachhaya') => ({
+      mealType: type,
+      time: type === 'Breakfast' 
+        ? '07:00 AM - 08:30 AM' 
+        : type === 'Lunch' 
+        ? '11:00 AM - 12:30 PM' 
+        : '05:00 PM - 06:00 PM',
+      isAllocated: false,
+      status: 'Available' as const,
+    });
 
     if (existingIndex >= 0) {
       const existing = danaSchedules[existingIndex];
-      const isBreakfast = newBookingMealType === 'Breakfast';
-      const updatedSlot = isBreakfast ? { breakfast: newSlot } : { lunch: newSlot };
-      const otherIsAllocated = isBreakfast ? existing.lunch.isAllocated : existing.breakfast.isAllocated;
-      const updatedStatus = otherIsAllocated ? 'Allocated' as const : 'Partially Allocated' as const;
+      const prevGilanpachhaya = existing.gilanpachhaya || defaultEmptySlot('Gilanpachhaya');
+
+      let updatedBreakfast = existing.breakfast;
+      let updatedLunch = existing.lunch;
+      let updatedGilanpachhaya = prevGilanpachhaya;
+
+      if (isFullDay) {
+        updatedBreakfast = buildSlot('Breakfast');
+        updatedLunch = buildSlot('Lunch');
+        updatedGilanpachhaya = buildSlot('Gilanpachhaya');
+      } else if (isBreakfast) {
+        updatedBreakfast = buildSlot('Breakfast');
+      } else if (isLunch) {
+        updatedLunch = buildSlot('Lunch');
+      } else if (isGilanpachhaya) {
+        updatedGilanpachhaya = buildSlot('Gilanpachhaya');
+      }
+
+      const allAllocated = updatedBreakfast.isAllocated && updatedLunch.isAllocated && updatedGilanpachhaya.isAllocated;
+      const anyAllocated = updatedBreakfast.isAllocated || updatedLunch.isAllocated || updatedGilanpachhaya.isAllocated;
+      const updatedStatus = allAllocated ? 'Allocated' as const : anyAllocated ? 'Partially Allocated' as const : 'Open' as const;
 
       const updated: SanghaDanaDaySchedule = {
         ...existing,
-        ...updatedSlot,
+        breakfast: updatedBreakfast,
+        lunch: updatedLunch,
+        gilanpachhaya: updatedGilanpachhaya,
         status: updatedStatus,
         auditTrail: [
           {
             id: `audit-${Date.now()}`,
-            action: `${newBookingMealType} Booking Added for ${newBookingSponsor}`,
+            action: isFullDay 
+              ? `Full Day Dana (All Meals) Booking Added for ${newBookingSponsor}` 
+              : `${newBookingMealType} Booking Added for ${newBookingSponsor}`,
             actor: 'Admin User',
             timestamp: now,
           },
@@ -204,38 +256,35 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         ]
       };
 
-      setDanaSchedules(prev => prev.map((s, idx) => idx === existingIndex ? updated : s));
+      const nextSchedules = danaSchedules.map((s, idx) => idx === existingIndex ? updated : s);
+      setDanaSchedules(nextSchedules);
+      saveDanaSchedules(nextSchedules);
     } else {
       const newSchedule: SanghaDanaDaySchedule = {
         id: scheduleId,
         dateStr,
         dayOfWeek,
         rawDate: newBookingDate,
-        status: 'Partially Allocated',
-        breakfast: newBookingMealType === 'Breakfast' ? newSlot : {
-          mealType: 'Breakfast',
-          time: '07:00 AM - 08:30 AM',
-          isAllocated: false,
-          status: 'Available',
-        },
-        lunch: newBookingMealType === 'Lunch' ? newSlot : {
-          mealType: 'Lunch',
-          time: '11:00 AM - 12:30 PM',
-          isAllocated: false,
-          status: 'Available',
-        },
+        status: isFullDay ? 'Allocated' : 'Partially Allocated',
+        breakfast: (isFullDay || isBreakfast) ? buildSlot('Breakfast') : defaultEmptySlot('Breakfast'),
+        lunch: (isFullDay || isLunch) ? buildSlot('Lunch') : defaultEmptySlot('Lunch'),
+        gilanpachhaya: (isFullDay || isGilanpachhaya) ? buildSlot('Gilanpachhaya') : defaultEmptySlot('Gilanpachhaya'),
         adminNotes: [],
         auditTrail: [
           {
             id: `audit-${Date.now()}`,
-            action: `New Day Schedule Created with ${newBookingMealType} for ${newBookingSponsor}`,
+            action: isFullDay 
+              ? `New Day Schedule Created with Full Day Dana for ${newBookingSponsor}` 
+              : `New Day Schedule Created with ${newBookingMealType} for ${newBookingSponsor}`,
             actor: 'Admin User',
             timestamp: now,
           }
         ]
       };
 
-      setDanaSchedules(prev => [newSchedule, ...prev]);
+      const nextSchedules = [newSchedule, ...danaSchedules];
+      setDanaSchedules(nextSchedules);
+      saveDanaSchedules(nextSchedules);
     }
 
     setShowNewBookingModal(false);
@@ -243,6 +292,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     // Reset form
     setNewBookingSponsor('');
     setNewBookingPhone('');
+    setNewBookingEmail('');
+    setNewBookingDedication('');
+    setNewBookingMealType('Breakfast');
     setNewBookingEmail('');
     setNewBookingDedication('');
   };
@@ -275,25 +327,32 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   // Filtered registrations for overview display
   const filteredRegistrations = React.useMemo(() => {
-    return liveRegistrations.filter(r => {
+    return (liveRegistrations || []).filter(r => {
+      if (!r) return false;
       const q = searchQuery.toLowerCase().trim();
+      const applicant = (r.applicantName || '').toLowerCase();
+      const course = (r.courseTitle || '').toLowerCase();
+      const email = (r.email || '').toLowerCase();
+      const pass = (r.passCode || '').toLowerCase();
+      const status = (r.status || '').toLowerCase();
+
       const matchesSearch = 
         !q ||
-        r.applicantName.toLowerCase().includes(q) ||
-        r.courseTitle.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        r.passCode.toLowerCase().includes(q);
-      const matchesStatus = filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase();
+        applicant.includes(q) ||
+        course.includes(q) ||
+        email.includes(q) ||
+        pass.includes(q);
+      const matchesStatus = filterStatus === 'all' || status === filterStatus.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [liveRegistrations, searchQuery, filterStatus]);
 
   const confirmedRegistrationsCount = React.useMemo(() => {
-    return liveRegistrations.filter(r => r.status === 'confirmed').length;
+    return (liveRegistrations || []).filter(r => (r?.status || '').toLowerCase() === 'confirmed').length;
   }, [liveRegistrations]);
 
   const upcomingBatchesCount = React.useMemo(() => {
-    return liveCourses.filter(c => c.status === 'open' || c.status === 'upcoming').length;
+    return (liveCourses || []).filter(c => c && (c.status === 'open' || c.status === 'upcoming')).length;
   }, [liveCourses]);
 
   return (
@@ -666,7 +725,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         ) : (
                           filteredRegistrations.slice(0, 5).map((reg, index) => {
                             const isWarmRow = index % 2 === 1;
-                            const statusStr = reg.status.toLowerCase();
+                            const statusStr = (reg.status || '').toLowerCase();
                             return (
                               <tr 
                                 key={reg.id} 
@@ -935,11 +994,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <label className="font-semibold text-[#3b2e27]">Meal Slot *</label>
                   <select
                     value={newBookingMealType}
-                    onChange={(e) => setNewBookingMealType(e.target.value as 'Breakfast' | 'Lunch')}
+                    onChange={(e) => setNewBookingMealType(e.target.value as 'Breakfast' | 'Lunch' | 'Gilanpachhaya' | 'Full Day')}
                     className="w-full p-2.5 rounded-xl border border-[#dccbc0] bg-[#fdfaf8] text-xs text-[#231a15] focus:outline-none focus:border-[#8c3c0b] focus:bg-white"
                   >
                     <option value="Breakfast">Breakfast (07:00 - 08:30 AM)</option>
                     <option value="Lunch">Lunch (11:00 AM - 12:30 PM)</option>
+                    <option value="Gilanpachhaya">Gilanpachhaya (05:00 - 06:00 PM)</option>
+                    <option value="Full Day">Full Day (Breakfast, Lunch & Gilanpachhaya)</option>
                   </select>
                 </div>
               </div>
