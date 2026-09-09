@@ -1,8 +1,8 @@
 export interface SanghaDanaMealSlot {
-  mealType: 'Breakfast' | 'Lunch';
+  mealType: 'Breakfast' | 'Lunch' | 'Gilanpachhaya';
   time: string;
   isAllocated: boolean;
-  status: 'Confirmed' | 'Pending' | 'Available' | 'Cancelled';
+  status: 'Confirmed' | 'Pending' | 'Available' | 'Cancelled' | 'Rejected';
   sponsorName?: string;
   contactPhone?: string;
   email?: string;
@@ -10,6 +10,7 @@ export interface SanghaDanaMealSlot {
   bookedOn?: string;
   attendeesCount?: number;
   dietaryNotes?: string;
+  rejectionReason?: string;
 }
 
 export interface SanghaDanaDaySchedule {
@@ -17,9 +18,10 @@ export interface SanghaDanaDaySchedule {
   dateStr: string; // e.g. "Oct 15, 2026" or "September 1, 2026"
   dayOfWeek: string; // e.g. "Sunday"
   rawDate: string; // "2026-10-15" or "2026-09-01"
-  status: 'Allocated' | 'Partially Allocated' | 'Open';
+  status: 'Allocated' | 'Partially Allocated' | 'Open' | 'Pending';
   breakfast: SanghaDanaMealSlot;
   lunch: SanghaDanaMealSlot;
+  gilanpachhaya?: SanghaDanaMealSlot;
   adminNotes: Array<{
     id: string;
     text: string;
@@ -57,6 +59,12 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
     lunch: {
       mealType: 'Lunch',
       time: '11:00 AM - 12:30 PM',
+      isAllocated: false,
+      status: 'Available',
+    },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
       isAllocated: false,
       status: 'Available',
     },
@@ -119,6 +127,18 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
       bookedOn: 'Sep 12, 2026, 15:40',
       attendeesCount: 8,
     },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
+      isAllocated: true,
+      status: 'Confirmed',
+      sponsorName: 'Colombo Dhamma Circle',
+      contactPhone: '+94 11 987 6543',
+      email: 'colombo.circle@sangha.org',
+      dedication: 'Evening tea and herbal refreshment for monks.',
+      bookedOn: 'Sep 12, 2026, 15:40',
+      attendeesCount: 8,
+    },
     adminNotes: [
       {
         id: 'n1',
@@ -172,6 +192,12 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
       isAllocated: false,
       status: 'Available',
     },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
+      isAllocated: false,
+      status: 'Available',
+    },
     adminNotes: [],
     auditTrail: [
       {
@@ -203,6 +229,12 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
     lunch: {
       mealType: 'Lunch',
       time: '11:00 AM - 12:30 PM',
+      isAllocated: false,
+      status: 'Available',
+    },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
       isAllocated: false,
       status: 'Available',
     },
@@ -243,6 +275,18 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
       contactPhone: '+91 22 8877 6655',
       email: 'info@mettasociety.in',
       dedication: 'Full day meal offering dedicated to peace across the globe.',
+      bookedOn: 'Sep 25, 2026, 11:30',
+      attendeesCount: 6,
+    },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
+      isAllocated: true,
+      status: 'Confirmed',
+      sponsorName: 'Metta Society',
+      contactPhone: '+91 22 8877 6655',
+      email: 'info@mettasociety.in',
+      dedication: 'Full day meal offering including evening Gilanpachhaya.',
       bookedOn: 'Sep 25, 2026, 11:30',
       attendeesCount: 6,
     },
@@ -287,6 +331,12 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
       isAllocated: false,
       status: 'Available',
     },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
+      isAllocated: false,
+      status: 'Available',
+    },
     adminNotes: [],
     auditTrail: [
       {
@@ -320,6 +370,12 @@ export const INITIAL_DANA_SCHEDULES: SanghaDanaDaySchedule[] = [
       dedication: 'In memory of ancestors and blessing for family wellbeing.',
       bookedOn: 'Sep 28, 2026, 14:15',
       attendeesCount: 4,
+    },
+    gilanpachhaya: {
+      mealType: 'Gilanpachhaya',
+      time: '05:00 PM - 06:00 PM',
+      isAllocated: false,
+      status: 'Available',
     },
     adminNotes: [],
     auditTrail: [
